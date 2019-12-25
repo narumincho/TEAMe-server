@@ -1,4 +1,5 @@
 import * as functions from "firebase-functions";
+import { request } from "http";
 
 export const indexHtml = functions
   .region("us-central1")
@@ -82,3 +83,9 @@ const escapeHtml = (text: string): string =>
       ? "&gt;"
       : ""
   );
+
+export const sampleApi = functions
+  .region("asia-northeast1")
+  .https.onRequest((request, response) => {
+    response.send("それな");
+  });
