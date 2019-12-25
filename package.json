@@ -2,7 +2,7 @@
   "name": "teame-server",
   "version": "1.0.0",
   "description": "",
-  "main": "distribution/index.js",
+  "main": "source/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -28,5 +28,8 @@
     "@types/jsonwebtoken": "^8.3.5",
     "@types/node": "^13.1.0",
     "typescript": "^3.7.4"
+  },
+  "engines": {
+    "node": "10"
   }
 }

@@ -14,8 +14,8 @@ jobs:
         uses: actions/checkout@master
       - name: Install npm dependencies (npm install)
         run: npm install
-      - name: Build
-        run: npx run tsc
+      - name: Transpile TypeScript (npx tsc)
+        run: npx tsc
       - name: deploy functions to firebase
         uses: w9jds/firebase-action@master
         with:
