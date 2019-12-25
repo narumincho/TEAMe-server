@@ -1,5 +1,4 @@
 import * as functions from "firebase-functions";
-import { request } from "http";
 
 export const indexHtml = functions
   .region("us-central1")

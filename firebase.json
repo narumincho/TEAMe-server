@@ -3,7 +3,6 @@
     "source": ".",
     "ignore": [
       "**/.git/**",
-      "**/source/**",
       "**/node_modules/**",
       "**/**.ts",
       ".gitignore",
