@@ -1,6 +1,11 @@
 import * as functions from "firebase-functions";
 import * as graphqlExpress from "express-graphql";
 import * as schema from "./schema";
+import * as database from "./database";
+import axios, { AxiosResponse } from "axios";
+import { URLSearchParams, URL } from "url";
+import * as data from "./data";
+import * as jsonWebToken from "jsonwebtoken";
 
 const escapeHtml = (text: string): string =>
   text.replace(/[&'`"<>]/g, (s: string): string =>
@@ -126,11 +131,109 @@ export const api = functions
  *   https://us-central1-teame-c1a32.cloudfunctions.net/logInCallback
  * =====================================================================
  */
+const createAccessTokenUrl = (accessToken: string): URL => {
+  return data.urlFromStringWithFragment(
+    "teame-c1a32.web.app",
+    new Map([["accessToken", accessToken]])
+  );
+};
+
+const verifyAccessTokenAndGetData = (
+  idToken: string
+): Promise<{
+  iss: "https://access.line.me";
+  sub: database.LineUserId;
+  name: string;
+  picture: URL;
+}> =>
+  new Promise((resolve, reject) => {
+    jsonWebToken.verify(
+      idToken,
+      data.lineLogInChannelSecret,
+      {
+        algorithms: ["HS256"]
+      },
+      (error, decoded) => {
+        if (error) {
+          console.log("lineTokenの正当性チェックで正当でないと判断された!");
+          reject("token invalid!");
+          return;
+        }
+        const decodedData = decoded as {
+          iss: unknown;
+          sub: unknown;
+          name: unknown;
+          picture: unknown;
+        };
+        if (
+          decodedData.iss !== "https://access.line.me" ||
+          typeof decodedData.name !== "string" ||
+          typeof decodedData.sub !== "string" ||
+          typeof decodedData.picture !== "string"
+        ) {
+          console.log("lineのidTokenに含まれているデータの型が違かった");
+          reject("token data is invalid!");
+          return;
+        }
+        resolve({
+          iss: decodedData.iss,
+          name: decodedData.name,
+          sub: decodedData.sub as database.LineUserId,
+          picture: new URL(decodedData.picture)
+        });
+      }
+    );
+  });
+
 export const logInCallback = functions
   .region("us-central1")
-  .https.onRequest((request, response) => {
+  .https.onRequest(async (request, response) => {
     const query: { code: unknown; state: unknown } = request.query;
-    const secretChannel = functions.config()["line-log-in"]["channel-secret"];
-    console.log(secretChannel);
-    response.send("作成中……");
+    if (typeof query.code !== "string" || typeof query.state !== "string") {
+      response.redirect("https://teame-c1a32.web.app");
+      return;
+    }
+    if (!(await database.checkExistsAndDeleteState(query.state))) {
+      response
+        .status(400)
+        .send(
+          `LINE LogIn Error: Definy dose not generate state (${query.state})`
+        );
+    }
+    // ここで https://api.line.me/oauth2/v2.1/token にqueryのcodeをつけて送信。IDトークンを取得する
+    const idToken = ((await axios.post(
+      "https://api.line.me/oauth2/v2.1/token",
+      new URLSearchParams(
+        new Map([
+          ["grant_type", "authorization_code"],
+          ["code", query.code],
+          ["redirect_uri", data.lineLogInRedirectUri],
+          ["client_id", data.lineLogInClientId],
+          ["client_secret", data.lineLogInChannelSecret]
+        ])
+      ).toString(),
+      {
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded"
+        }
+      }
+    )) as AxiosResponse<{ id_token: string }>).data.id_token;
+    const lineData = await verifyAccessTokenAndGetData(idToken);
+    const userData = await database.getUserFromLineAccountId(lineData.sub);
+    // ユーザーが存在しなかったので新しく作る
+    if (userData === null) {
+      const accessToken = await database.createUser(
+        lineData.name,
+        lineData.picture,
+        lineData.sub
+      );
+      response.redirect(createAccessTokenUrl(accessToken).toString());
+      return;
+    }
+    // ユーザーが存在したのでアクセストークンを再発行して返す
+    response.redirect(
+      createAccessTokenUrl(
+        await database.updateAccessToken(userData.id)
+      ).toString()
+    );
   });

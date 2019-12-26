@@ -23,7 +23,6 @@
     "no-extend-native": ["error"],
     "no-implicit-coercion": ["error"],
     "prefer-arrow-callback": ["error"],
-    "camelcase": ["error"],
     "curly": ["error", "all"],
     "@typescript-eslint/restrict-plus-operands": [
       "error",

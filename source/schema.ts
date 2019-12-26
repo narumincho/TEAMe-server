@@ -1,7 +1,7 @@
 import * as g from "graphql";
 import Maybe from "graphql/tsutils/Maybe";
 import { URL } from "url";
-import * as tool from "./tool";
+import * as data from "./data";
 import * as database from "./database";
 
 const makeObjectFieldMap = <Type extends { [k in string]: unknown }>(
@@ -105,15 +105,12 @@ const getLineLogInUrl = makeQueryOrMutationField<{}, URL>({
   type: g.GraphQLNonNull(urlGraphQLType),
   args: {},
   resolve: async args => {
-    return tool.urlFromStringWithQuery(
+    return data.urlFromStringWithQuery(
       "access.line.me/oauth2/v2.1/authorize",
       new Map([
         ["response_type", "code"],
-        ["client_id", "1653666716"],
-        [
-          "redirect_uri",
-          "https://us-central1-teame-c1a32.cloudfunctions.net/logInCallback"
-        ],
+        ["client_id", data.lineLogInClientId],
+        ["redirect_uri", data.lineLogInRedirectUri],
         ["scope", "profile openid"],
         ["state", await database.generateAndWriteLogInState()]
       ])

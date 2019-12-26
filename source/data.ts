@@ -1,4 +1,5 @@
 import { URL, URLSearchParams } from "url";
+import * as functions from "firebase-functions";
 
 export const urlFromString = (domainAndPath: string): URL =>
   new URL("https://" + domainAndPath);
@@ -27,3 +28,12 @@ export const urlFromStringWithFragment = (
   url.hash = new URLSearchParams(fragment).toString();
   return url;
 };
+
+export const lineLogInRedirectUri =
+  "https://us-central1-teame-c1a32.cloudfunctions.net/logInCallback";
+
+export const lineLogInClientId = "1653666716";
+
+export const lineLogInChannelSecret: string = functions.config()["line-log-in"][
+  "channel-secret"
+];
