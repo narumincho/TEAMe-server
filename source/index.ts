@@ -126,9 +126,11 @@ export const api = functions
  *   https://us-central1-teame-c1a32.cloudfunctions.net/logInCallback
  * =====================================================================
  */
-export const logInCallBack = functions
+export const logInCallback = functions
   .region("us-central1")
   .https.onRequest((request, response) => {
     const query: { code: unknown; state: unknown } = request.query;
+    const secretChannel = functions.config()["line-log-in"]["channel-secret"];
+    console.log(secretChannel);
     response.send("作成中……");
   });

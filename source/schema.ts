@@ -2,7 +2,6 @@ import * as g from "graphql";
 import Maybe from "graphql/tsutils/Maybe";
 import { URL } from "url";
 import * as tool from "./tool";
-import * as key from "./key";
 import * as database from "./database";
 
 const makeObjectFieldMap = <Type extends { [k in string]: unknown }>(
@@ -110,8 +109,11 @@ const getLineLogInUrl = makeQueryOrMutationField<{}, URL>({
       "access.line.me/oauth2/v2.1/authorize",
       new Map([
         ["response_type", "code"],
-        ["client_id", key.lineLogInClientId],
-        ["redirect_uri", key.lineLogInRedirectUri],
+        ["client_id", "1653666716"],
+        [
+          "redirect_uri",
+          "https://us-central1-teame-c1a32.cloudfunctions.net/logInCallback"
+        ],
         ["scope", "profile openid"],
         ["state", await database.generateAndWriteLogInState()]
       ])
