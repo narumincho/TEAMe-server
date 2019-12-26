@@ -1,4 +1,15 @@
 import * as functions from "firebase-functions";
+import * as graphqlExpress from "express-graphql";
+import * as schema from "./schema";
+
+/* =====================================================================
+ *               Index Html ブラウザが最初にリクエストするところ
+ *
+ *          https://teame-c1a32.web.app/ など
+ *              ↓ firebase.json rewrite
+ *          Cloud Functions for Firebase / indexHtml
+ * =====================================================================
+ */
 
 export const indexHtml = functions
   .region("us-central1")
@@ -83,8 +94,41 @@ const escapeHtml = (text: string): string =>
       : ""
   );
 
-export const sampleApi = functions
-  .region("asia-northeast1")
+/* =====================================================================
+ *                          API (GraphQL)
+ *     https://us-central1-teame-c1a32.cloudfunctions.net/indexHtml
+ * =====================================================================
+ */
+
+export const api = functions
+  .runWith({ memory: "2GB" })
   .https.onRequest((request, response) => {
-    response.send("それな");
+    console.log("API called");
+    response.setHeader(
+      "access-control-allow-origin",
+      "https://teame-c1a32.web.app"
+    );
+    response.setHeader("vary", "Origin");
+    if (request.method === "OPTIONS") {
+      response.setHeader("access-control-allow-methods", "POST, GET, OPTIONS");
+      response.setHeader("access-control-allow-headers", "content-type");
+      response.status(200).send("");
+      return;
+    }
+    graphqlExpress({ schema: schema.schema, graphiql: true })(
+      request,
+      response
+    );
+  });
+
+/* =====================================================================
+ *              ソーシャルログインをしたあとのリダイレクト先
+ *   https://us-central1-teame-c1a32.cloudfunctions.net/logInCallback
+ * =====================================================================
+ */
+export const logInCallBack = functions
+  .region("us-central1")
+  .https.onRequest((request, response) => {
+    const query: { code: unknown; state: unknown } = request.query;
+    response.send("作成中……");
   });
