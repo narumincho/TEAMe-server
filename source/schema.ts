@@ -128,7 +128,16 @@ export const schema = new g.GraphQLSchema({
     name: "Query",
     description:
       "データを取得できる。データを取得したときに影響は他に及ばさない",
-    fields: {}
+    fields: {
+      hello: makeQueryOrMutationField<{}, string>({
+        type: g.GraphQLNonNull(g.GraphQLString),
+        args: {},
+        description: "TEAMeにあいさつをする",
+        resolve: async () => {
+          return "やあ、TEAMeのAPIサーバーだよ";
+        }
+      })
+    }
   }),
   mutation: new g.GraphQLObjectType({
     name: "Mutation",
