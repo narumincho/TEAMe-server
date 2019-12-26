@@ -2,6 +2,33 @@ import * as functions from "firebase-functions";
 import * as graphqlExpress from "express-graphql";
 import * as schema from "./schema";
 
+const escapeHtml = (text: string): string =>
+  text.replace(/[&'`"<>]/g, (s: string): string =>
+    s === "&"
+      ? "&amp;"
+      : s === "'"
+      ? "&#x27;"
+      : s === "`"
+      ? "&#x60;"
+      : s === '"'
+      ? "&quot;"
+      : s === "<"
+      ? "&lt;"
+      : s === ">"
+      ? "&gt;"
+      : ""
+  );
+
+const pathToDescriptionAndImageUrl = async (
+  path: string
+): Promise<{ title: string; description: string; imageUrl: string }> => {
+  return {
+    title: "TEAMe",
+    description: "デジタル練習ノート",
+    imageUrl: "https://teame-c1a32.web.app/assets/icon.png"
+  };
+};
+
 /* =====================================================================
  *               Index Html ブラウザが最初にリクエストするところ
  *
@@ -66,33 +93,6 @@ export const indexHtml = functions
 </body>
 `);
   });
-
-const pathToDescriptionAndImageUrl = async (
-  path: string
-): Promise<{ title: string; description: string; imageUrl: string }> => {
-  return {
-    title: "TEAMe",
-    description: "デジタル練習ノート",
-    imageUrl: "https://teame-c1a32.web.app/assets/icon.png"
-  };
-};
-
-const escapeHtml = (text: string): string =>
-  text.replace(/[&'`"<>]/g, (s: string): string =>
-    s === "&"
-      ? "&amp;"
-      : s === "'"
-      ? "&#x27;"
-      : s === "`"
-      ? "&#x60;"
-      : s === '"'
-      ? "&quot;"
-      : s === "<"
-      ? "&lt;"
-      : s === ">"
-      ? "&gt;"
-      : ""
-  );
 
 /* =====================================================================
  *                          API (GraphQL)
