@@ -237,3 +237,30 @@ export const logInCallback = functions
       ).toString()
     );
   });
+
+/* =====================================================================
+ *                 File バイナリファイルを欲しいときに利用する
+ *      https://us-central1-teame-c1a32.cloudfunctions.net/file
+ * =====================================================================
+ */
+export const file = functions.https.onRequest(async (request, response) => {
+  response.setHeader(
+    "access-control-allow-origin",
+    "https://definy-lang.web.app/"
+  );
+  response.setHeader("vary", "Origin");
+  if (request.method === "OPTIONS") {
+    response.setHeader("access-control-allow-methods", "POST, GET, OPTIONS");
+    response.setHeader("access-control-allow-headers", "content-type");
+    response.status(200).send("");
+    return;
+  }
+  if (request.method === "GET") {
+    response.setHeader("cache-control", "public, max-age=31536000");
+    database
+      .getReadableStream(schema.parseFileHash(request.path.slice(1)))
+      .pipe(response);
+    return;
+  }
+  response.status(400).send("invalid file parameter");
+});

@@ -4,6 +4,34 @@ import { URL } from "url";
 import * as data from "./data";
 import * as database from "./database";
 
+export const parseFileHash = (value: unknown): database.FileHash => {
+  if (typeof value !== "string") {
+    throw new Error("Hash must be string");
+  }
+  if (value.length !== 64) {
+    throw new Error("Hash length must be 64");
+  }
+  for (const char of value) {
+    if (!"0123456789abcdef".includes(char)) {
+      throw new Error("Hash char must match /[0-9a-f]/");
+    }
+  }
+  return value as database.FileHash;
+};
+
+const fileHashTypeConfig: g.GraphQLScalarTypeConfig<
+  database.FileHash,
+  string
+> = {
+  name: "FileHash",
+  description:
+    "SHA-256で得られたハッシュ値。hexスタイル。16進数でa-fは小文字、64文字 https://us-central1-teame-c1a32.cloudfunctions.net/file/{hash} のURLからファイルを得ることができる",
+  serialize: (value: database.FileHash): string => value,
+  parseValue: parseFileHash
+};
+
+const hashGraphQLType = new g.GraphQLScalarType(fileHashTypeConfig);
+
 const makeObjectFieldMap = <Type extends { [k in string]: unknown }>(
   args: Type extends { id: string } | { hash: string }
     ? {

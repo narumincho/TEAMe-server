@@ -1,4 +1,5 @@
 import * as crypto from "crypto";
+import * as stream from "stream";
 import * as typedFirestore from "typed-admin-firestore";
 import * as admin from "firebase-admin";
 import { AxiosResponse } from "axios";
@@ -197,4 +198,12 @@ export const updateAccessToken = async (
       lastIssuedAccessTokenHash: hashAccessToken(newAccessToken)
     });
   return newAccessToken;
+};
+
+/**
+ * Firebase Cloud Storageからファイルを読み込むReadable Streamを取得する
+ * @param fileHash ファイルハッシュ
+ */
+export const getReadableStream = (fileHash: FileHash): stream.Readable => {
+  return storageDefaultBucket.file(fileHash).createReadStream();
 };
