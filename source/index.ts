@@ -131,9 +131,9 @@ export const api = functions
  *   https://us-central1-teame-c1a32.cloudfunctions.net/logInCallback
  * =====================================================================
  */
-const createAccessTokenUrl = (accessToken: string): URL => {
+const createAccessTokenUrl = (path: string, accessToken: string): URL => {
   return data.urlFromStringWithFragment(
-    "teame-c1a32.web.app",
+    "teame-c1a32.web.app" + path,
     new Map([["accessToken", accessToken]])
   );
 };
@@ -193,12 +193,14 @@ export const logInCallback = functions
       response.redirect("https://teame-c1a32.web.app");
       return;
     }
-    if (!(await database.checkExistsAndDeleteState(query.state))) {
+    const pathData = await database.checkExistsAndDeleteState(query.state);
+    if (pathData === null) {
       response
         .status(400)
         .send(
           `LINE LogIn Error: Definy dose not generate state (${query.state})`
         );
+      return;
     }
     // ここで https://api.line.me/oauth2/v2.1/token にqueryのcodeをつけて送信。IDトークンを取得する
     const idToken = ((await axios.post(
@@ -227,12 +229,15 @@ export const logInCallback = functions
         lineData.picture,
         lineData.sub
       );
-      response.redirect(createAccessTokenUrl(accessToken).toString());
+      response.redirect(
+        createAccessTokenUrl(pathData.path, accessToken).toString()
+      );
       return;
     }
     // ユーザーが存在したのでアクセストークンを再発行して返す
     response.redirect(
       createAccessTokenUrl(
+        pathData.path,
         await database.updateAccessToken(userData.id)
       ).toString()
     );

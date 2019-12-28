@@ -11,7 +11,7 @@ const app = admin.initializeApp();
 const database = (app.firestore() as unknown) as typedFirestore.Firestore<{
   lineLogInState: {
     key: string;
-    value: { createdAt: admin.firestore.Timestamp };
+    value: StateData;
     subCollections: {};
   };
   user: {
@@ -20,6 +20,11 @@ const database = (app.firestore() as unknown) as typedFirestore.Firestore<{
     subCollections: {};
   };
 }>;
+
+type StateData = {
+  path: string;
+  createdAt: admin.firestore.Timestamp;
+};
 
 const storageDefaultBucket = app.storage().bucket();
 
@@ -51,12 +56,17 @@ const createRandomId = (): string => {
 /**
  * ソーシャルログイン stateを保存する
  */
-export const generateAndWriteLogInState = async (): Promise<string> => {
+export const generateAndWriteLogInState = async (
+  path: string
+): Promise<string> => {
   const state = createRandomId();
   await database
     .collection("lineLogInState")
     .doc(state)
-    .create({ createdAt: admin.firestore.Timestamp.fromDate(new Date()) });
+    .create({
+      path: path,
+      createdAt: admin.firestore.Timestamp.fromDate(new Date())
+    });
   return state;
 };
 
@@ -65,14 +75,16 @@ export const generateAndWriteLogInState = async (): Promise<string> => {
  */
 export const checkExistsAndDeleteState = async (
   state: string
-): Promise<boolean> => {
-  const docRef = await database.collection("lineLogInState").doc(state);
-  const exists = (await docRef.get()).exists;
-  if (exists) {
+): Promise<{ path: string } | null> => {
+  const docRef = database.collection("lineLogInState").doc(state);
+  const data = (await docRef.get()).data();
+  if (data !== undefined) {
     await docRef.delete();
-    return true;
+    return {
+      path: data.path
+    };
   }
-  return false;
+  return null;
 };
 
 /**

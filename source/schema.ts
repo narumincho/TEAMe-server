@@ -129,9 +129,19 @@ const urlGraphQLType = new g.GraphQLScalarType(urlTypeScalarTypeConfig);
 /**
  * 新規登録かログインするためのURLを得る。
  */
-const getLineLogInUrl = makeQueryOrMutationField<{}, URL>({
+const getLineLogInUrl = makeQueryOrMutationField<
+  {
+    path: string;
+  },
+  URL
+>({
   type: g.GraphQLNonNull(urlGraphQLType),
-  args: {},
+  args: {
+    path: {
+      type: g.GraphQLNonNull(g.GraphQLString),
+      description: "ログインして返ってくるURLのパス"
+    }
+  },
   resolve: async args => {
     return data.urlFromStringWithQuery(
       "access.line.me/oauth2/v2.1/authorize",
@@ -140,7 +150,7 @@ const getLineLogInUrl = makeQueryOrMutationField<{}, URL>({
         ["client_id", data.lineLogInClientId],
         ["redirect_uri", data.lineLogInRedirectUri],
         ["scope", "profile openid"],
-        ["state", await database.generateAndWriteLogInState()]
+        ["state", await database.generateAndWriteLogInState(args.path)]
       ])
     );
   },
