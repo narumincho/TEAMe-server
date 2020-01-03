@@ -64,7 +64,7 @@ export const indexHtml = functions
     <meta name="theme-color" content="#a7d86e">
     <title>TEAMe デジタル練習ノート</title>
     <link rel="icon" href="https://teame-c1a32.web.app/assets/icon.png">
-    <link rel="manifest" href="https://teame-c1a32.web.app/manifest.json">
+    <link rel="manifest" href="https://teame-c1a32.web.app/assets/manifest.json">
     <meta name="twitter:card" content="summary_large_image">
     <meta property="og:url" content="https://teame-c1a32.web.app${request.url}">
     <meta property="og:title" content="${escapeHtml(
