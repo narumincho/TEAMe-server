@@ -12,8 +12,8 @@ jobs:
     steps:
       - name: checkout repository
         uses: actions/checkout@master
-      - name: Install npm dependencies (npm install)
-        run: npm install
+      - name: Install npm dependencies (npm ci)
+        run: npm ci
       - name: Transpile TypeScript (npx tsc)
         run: npx tsc
       - name: deploy functions to firebase
