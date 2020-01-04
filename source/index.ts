@@ -30,7 +30,7 @@ const pathToDescriptionAndImageUrl = async (
   return {
     title: "TEAMe",
     description: "デジタル練習ノート",
-    imageUrl: "https://teame-c1a32.web.app/assets/icon.png"
+    imageUrl: data.appSchemeAndHostName + "/assets/icon.png"
   };
 };
 
@@ -46,8 +46,8 @@ const pathToDescriptionAndImageUrl = async (
 export const indexHtml = functions
   .region("us-central1")
   .https.onRequest(async (request, response) => {
-    if (request.hostname !== "teame-c1a32.web.app") {
-      response.redirect("https://teame-c1a32.web.app");
+    if (request.hostname !== data.appHostName) {
+      response.redirect(data.appSchemeAndHostName);
     }
     const descriptionAndImageUrl = await pathToDescriptionAndImageUrl(
       request.path
@@ -63,10 +63,14 @@ export const indexHtml = functions
     <meta name="description" content="TEAMe デジタル練習ノート">
     <meta name="theme-color" content="#a7d86e">
     <title>TEAMe デジタル練習ノート</title>
-    <link rel="icon" href="https://teame-c1a32.web.app/assets/icon.png">
-    <link rel="manifest" href="https://teame-c1a32.web.app/assets/manifest.json">
+    <link rel="icon" href="${data.appSchemeAndHostName}/assets/icon.png">
+    <link rel="manifest" href="${
+      data.appSchemeAndHostName
+    }/assets/manifest.json">
     <meta name="twitter:card" content="summary_large_image">
-    <meta property="og:url" content="https://teame-c1a32.web.app${request.url}">
+    <meta property="og:url" content="${data.appSchemeAndHostName}${
+      request.url
+    }">
     <meta property="og:title" content="${escapeHtml(
       descriptionAndImageUrl.title
     )}">
@@ -77,7 +81,7 @@ export const indexHtml = functions
     <meta property="og:image" content="${escapeHtml(
       descriptionAndImageUrl.imageUrl
     )}">
-    <script src="https://teame-c1a32.web.app/main.js" defer></script>
+    <script src="${data.appSchemeAndHostName}/main.js" defer></script>
     <style>
         html {
             height: 100%;
@@ -111,7 +115,7 @@ export const api = functions
     console.log("API called");
     response.setHeader(
       "access-control-allow-origin",
-      "https://teame-c1a32.web.app"
+      data.appSchemeAndHostName
     );
     response.setHeader("vary", "Origin");
     if (request.method === "OPTIONS") {
@@ -133,7 +137,7 @@ export const api = functions
  */
 const createAccessTokenUrl = (path: string, accessToken: string): URL => {
   return data.urlFromStringWithFragment(
-    "teame-c1a32.web.app" + path,
+    data.appHostName + path,
     new Map([["accessToken", accessToken]])
   );
 };
@@ -190,7 +194,7 @@ export const logInCallback = functions
   .https.onRequest(async (request, response) => {
     const query: { code: unknown; state: unknown } = request.query;
     if (typeof query.code !== "string" || typeof query.state !== "string") {
-      response.redirect("https://teame-c1a32.web.app");
+      response.redirect(data.appSchemeAndHostName);
       return;
     }
     const pathData = await database.checkExistsAndDeleteState(query.state);

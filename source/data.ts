@@ -17,17 +17,21 @@ export const urlFromStringWithQuery = (
 
 /**
  *
- * @param domainAndPath https://を除いたドメインとパス narumincho.com/path など
+ * @param hostNameAndPath https:// を除いたホスト名とパス narumincho.com/path など
  * @param fragment URLSearchParamsとしてエンコードされる
  */
 export const urlFromStringWithFragment = (
-  domainAndPath: string,
+  hostNameAndPath: string,
   fragment: Map<string, string>
 ): URL => {
-  const url = new URL("https://" + domainAndPath);
+  const url = new URL("https://" + hostNameAndPath);
   url.hash = new URLSearchParams(fragment).toString();
   return url;
 };
+
+export const appHostName = "teame-c1a32.web.app";
+
+export const appSchemeAndHostName = "https://" + appHostName;
 
 export const lineLogInRedirectUri =
   "https://us-central1-teame-c1a32.cloudfunctions.net/logInCallback";
