@@ -253,10 +253,7 @@ export const logInCallback = functions
  * =====================================================================
  */
 export const file = functions.https.onRequest(async (request, response) => {
-  response.setHeader(
-    "access-control-allow-origin",
-    "https://definy-lang.web.app/"
-  );
+  response.setHeader("access-control-allow-origin", data.appSchemeAndHostName);
   response.setHeader("vary", "Origin");
   if (request.method === "OPTIONS") {
     response.setHeader("access-control-allow-methods", "POST, GET, OPTIONS");

@@ -88,7 +88,7 @@ type ReturnLoop<Type> = Type extends { id: infer idType }
   ? { id: idType } & { [k in keyof Type]?: Return<Type[k]> }
   : Type extends { hash: infer hashType }
   ? { hash: hashType } & { [k in keyof Type]?: Return<Type[k]> }
-  : { [k in keyof Type]?: Return<Type[k]> };
+  : { [k in keyof Type]: Return<Type[k]> };
 
 const makeQueryOrMutationField = <
   Args extends { [k in string]: unknown },
