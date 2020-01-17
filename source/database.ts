@@ -155,7 +155,7 @@ const saveFile = async (
   const hash = createHashFromBuffer(buffer, mimeType);
   const file = storageDefaultBucket.file(hash);
   await file.save(buffer, { contentType: mimeType });
-  return hash as FileHash;
+  return hash;
 };
 
 /**
