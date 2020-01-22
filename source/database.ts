@@ -19,6 +19,21 @@ const database = (app.firestore() as unknown) as typedFirestore.Firestore<{
     value: UserData;
     subCollections: {};
   };
+  team: {
+    key: TeamId;
+    value: TeamData;
+    subCollections: {};
+  };
+  pdca: {
+    key: PdcaId;
+    value: PdcaData;
+    subCollections: {};
+  };
+  cycle: {
+    key: CycleId;
+    value: CycleData;
+    subCollections: {};
+  };
 }>;
 
 type StateData = {
@@ -35,11 +50,47 @@ export type UserData = {
   lastIssuedAccessTokenHash: AccessTokenHash;
   createdAt: admin.firestore.Timestamp;
   role: UserRole | null;
+  team: TeamId | null;
 };
 
 export type UserRole = "manager" | "player";
 
+export type TeamData = {
+  name: string;
+  createdAt: admin.firestore.Timestamp;
+};
+
+export type PdcaData = {
+  name: string;
+  createdAt: admin.firestore.Timestamp;
+};
+
+export type CycleData = {
+  createdAt: admin.firestore.Timestamp;
+  plan: PlanData;
+  do: string;
+  check: string;
+  act: string;
+  updateAt: admin.firestore.Timestamp;
+};
+
+export type PlanData = {
+  [key in string]:
+    | string
+    | {
+        [key in string]:
+          | string
+          | { [key in string]: string | { [key in string]: string } };
+      };
+};
+
 export type UserId = string & { _userId: never };
+
+export type TeamId = string & { _teamId: never };
+
+export type PdcaId = string & { _pdcaId: never };
+
+export type CycleId = string & { _cycle: never };
 
 export type LineUserId = string & { _lineUserId: never };
 
@@ -194,7 +245,9 @@ export const createUser = async (
       createdAt: admin.firestore.Timestamp.fromDate(new Date()),
       imageFileHash: imageFileHash,
       lastIssuedAccessTokenHash: hashAccessToken(accessToken),
-      lineUserId: lineUserId
+      lineUserId: lineUserId,
+      role: null,
+      team: null
     });
   return accessToken;
 };
