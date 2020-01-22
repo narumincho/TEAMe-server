@@ -34,7 +34,10 @@ export type UserData = {
   imageFileHash: FileHash;
   lastIssuedAccessTokenHash: AccessTokenHash;
   createdAt: admin.firestore.Timestamp;
+  role: UserRole | null;
 };
+
+export type UserRole = "manager" | "player";
 
 export type UserId = string & { _userId: never };
 
