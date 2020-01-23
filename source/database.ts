@@ -59,7 +59,7 @@ export type GraphQLUserData = {
   imageFileHash: FileHash;
   createdAt: Date;
   role: UserRole | null;
-  team: GraphQLTeamData;
+  team: GraphQLTeamData | null;
 };
 
 export type GraphQLUserDataLowCost = {
@@ -85,7 +85,6 @@ export const roleValues = {
 export type UserRole = keyof typeof roleValues;
 
 export type TeamData = {
-  id: TeamId;
   name: string;
   createdAt: admin.firestore.Timestamp;
   managerId: UserId;
@@ -436,17 +435,50 @@ export const getUserData = async (
   };
 };
 
+const createTeam = async (
+  teamName: string,
+  managerUserId: UserId
+): Promise<GraphQLTeamDataLowCost> => {
+  const teamId = createRandomId() as TeamId;
+  const nowTime = new Date();
+  await database
+    .collection("team")
+    .doc(teamId)
+    .create({
+      name: teamName,
+      createdAt: admin.firestore.Timestamp.fromDate(nowTime),
+      managerId: managerUserId,
+      playerIdList: []
+    });
+  return {
+    id: teamId,
+    name: teamName,
+    createdAt: nowTime,
+    manager: {
+      id: managerUserId
+    },
+    playerList: []
+  };
+};
+
+const joinTeam = async (
+  teamId: TeamId,
+  userId: UserId
+): Promise<{ id: TeamId }> => {
+  const result = await database
+    .collection("team")
+    .doc(teamId)
+    .update({
+      playerIdList: admin.firestore.FieldValue.arrayUnion(userId)
+    });
+  return {
+    id: teamId
+  };
+};
+
 export const getTeamData = async (
   teamId: TeamId
-): Promise<{
-  id: TeamId;
-  name: string;
-  manager: {
-    id: UserId;
-  };
-  playerList: Array<{ id: UserId }>;
-  createdAt: Date;
-}> => {
+): Promise<GraphQLTeamDataLowCost> => {
   const documentValue = (
     await database
       .collection("team")
@@ -470,16 +502,20 @@ export const getTeamData = async (
 export const createTeamAndSetManagerRole = async (
   accessToken: AccessToken,
   teamName: string
-): Promise<GraphQLTeamData> => {
+): Promise<GraphQLTeamDataLowCost> => {
   const userData = await getUserByAccessToken(accessToken);
-  await setUserRoleAndTeamId(userData.id, "manager");
-  return {};
+  const teamData = await createTeam(teamName, userData.id);
+  await setUserRoleAndTeamId(userData.id, "manager", teamData.id);
+  return teamData;
 };
 
 export const joinTeamAndSetPlayerRole = async (
   accessToken: AccessToken,
   teamId: TeamId
-): Promise<GraphQLTeamData> => {
+): Promise<{ id: TeamId }> => {
   const userData = await getUserByAccessToken(accessToken);
-  return {};
+  await joinTeam(teamId, userData.id);
+  return {
+    id: teamId
+  };
 };

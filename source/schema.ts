@@ -373,7 +373,7 @@ const createTeamAndSetManagerRole = makeQueryOrMutationField<
 const joinTeamAndSetPlayerRole = makeQueryOrMutationField<
   {
     accessToken: database.AccessToken;
-    teamId: string;
+    teamId: database.TeamId;
   },
   database.GraphQLTeamData
 >({
@@ -390,7 +390,10 @@ const joinTeamAndSetPlayerRole = makeQueryOrMutationField<
   },
   description: "選手としてチームに参加する",
   resolve: async args => {
-    await database.joinTeamAndSetPlayerRole();
+    return await database.joinTeamAndSetPlayerRole(
+      args.accessToken,
+      args.teamId
+    );
   }
 });
 
