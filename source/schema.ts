@@ -154,12 +154,15 @@ const roleGraphQLType = new g.GraphQLEnumType({
 
 const setUserData = async (
   source: Return<database.GraphQLUserData>
-): ReturnType<typeof database.getUserData> => {
+): Promise<database.GraphQLUserDataLowCost> => {
   const data = await database.getUserData(source.id);
   source.name = data.name;
   source.imageFileHash = data.imageFileHash;
   source.role = data.role;
   source.createdAt = data.createdAt;
+  if (source.team === undefined) {
+    source.team = data.team;
+  }
   return data;
 };
 
@@ -169,54 +172,141 @@ const userDataGraphQLType: g.GraphQLObjectType<
   {}
 > = new g.GraphQLObjectType({
   name: "UserData",
-  fields: makeObjectFieldMap<database.GraphQLUserData>({
+  fields: () =>
+    makeObjectFieldMap<database.GraphQLUserData>({
+      id: {
+        description: "ユーザー識別するためのID",
+        type: g.GraphQLNonNull(g.GraphQLString)
+      },
+      name: makeObjectField({
+        args: {},
+        description: "ユーザー名",
+        resolve: async source => {
+          if (source.name === undefined) {
+            return (await setUserData(source)).name;
+          }
+          return source.name;
+        },
+        type: g.GraphQLNonNull(g.GraphQLString)
+      }),
+      imageFileHash: makeObjectField({
+        args: {},
+        description: "ユーザーのプロフィール画像のファイルハッシュ",
+        resolve: async source => {
+          if (source.imageFileHash === undefined) {
+            return (await setUserData(source)).imageFileHash;
+          }
+          return source.imageFileHash;
+        },
+        type: g.GraphQLNonNull(hashGraphQLType)
+      }),
+      role: makeObjectField({
+        args: {},
+        description: "ユーザーの役割",
+        resolve: async source => {
+          if (source.role === undefined) {
+            return (await setUserData(source)).role;
+          }
+          return source.role;
+        },
+        type: roleGraphQLType
+      }),
+      createdAt: makeObjectField({
+        args: {},
+        description: "ユーザーが作られた日時",
+        resolve: async source => {
+          if (source.createdAt === undefined) {
+            return (await setUserData(source)).createdAt;
+          }
+          return source.createdAt;
+        },
+        type: g.GraphQLNonNull(dateTimeGraphQLType)
+      }),
+      team: makeObjectField({
+        args: {},
+        description: "所属しているチーム",
+        type: g.GraphQLNonNull(teamGraphQLType),
+        resolve: async source => {
+          if (source.team === undefined) {
+            return (await setUserData(source)).team;
+          }
+          return source.team;
+        }
+      })
+    })
+});
+
+const setTeam = async (
+  source: Return<database.GraphQLTeamData>
+): Promise<database.GraphQLTeamDataLowCost> => {
+  const data = await database.getTeamData(source.id);
+  source.name = data.name;
+  source.createdAt = data.createdAt;
+  if (source.manager === undefined) {
+    source.manager = data.manager;
+  }
+  if (source.playerList === undefined) {
+    source.playerList = data.playerList;
+  }
+  return data;
+};
+
+const teamGraphQLType = new g.GraphQLObjectType<
+  database.GraphQLTeamData,
+  void,
+  {}
+>({
+  name: "Team",
+  fields: makeObjectFieldMap<database.GraphQLTeamData>({
     id: {
-      description: "ユーザー識別するためのID",
-      type: g.GraphQLNonNull(g.GraphQLString)
+      type: g.GraphQLNonNull(g.GraphQLString),
+      description: "チームを識別するためのID"
     },
     name: makeObjectField({
       args: {},
-      description: "ユーザー名",
+      description: "チーム名",
+      type: g.GraphQLNonNull(g.GraphQLString),
       resolve: async source => {
         if (source.name === undefined) {
-          return (await setUserData(source)).name;
+          return (await setTeam(source)).name;
         }
         return source.name;
-      },
-      type: g.GraphQLNonNull(g.GraphQLString)
-    }),
-    imageFileHash: makeObjectField({
-      args: {},
-      description: "ユーザーのプロフィール画像のファイルハッシュ",
-      resolve: async source => {
-        if (source.imageFileHash === undefined) {
-          return (await setUserData(source)).imageFileHash;
-        }
-        return source.imageFileHash;
-      },
-      type: g.GraphQLNonNull(hashGraphQLType)
-    }),
-    role: makeObjectField({
-      args: {},
-      description: "ユーザーの役割",
-      resolve: async source => {
-        if (source.role === undefined) {
-          return (await setUserData(source)).role;
-        }
-        return source.role;
-      },
-      type: roleGraphQLType
+      }
     }),
     createdAt: makeObjectField({
       args: {},
-      description: "ユーザーが作られた日時",
+      description: "チームの作成日時",
+      type: g.GraphQLNonNull(dateTimeGraphQLType),
       resolve: async source => {
         if (source.createdAt === undefined) {
-          return (await setUserData(source)).createdAt;
+          return (await setTeam(source)).createdAt;
         }
         return source.createdAt;
-      },
-      type: g.GraphQLNonNull(dateTimeGraphQLType)
+      }
+    }),
+    manager: makeObjectField({
+      args: {},
+      description: "監督",
+      type: g.GraphQLNonNull(userDataGraphQLType),
+      resolve: async source => {
+        if (source.manager === undefined) {
+          return (await setTeam(source)).manager;
+        }
+        return source.manager;
+      }
+    }),
+    playerList: makeObjectField({
+      args: {},
+      description: "選手",
+      type: g.GraphQLNonNull(
+        g.GraphQLList(g.GraphQLNonNull(g.GraphQLList(userDataGraphQLType)))
+      ),
+      resolve: async source => {
+        if (source.playerList === undefined) {
+          return (await setTeam(source)).playerList;
+        }
+        return source.playerList;
+      }
     })
   })
 });
@@ -251,6 +341,60 @@ const getLineLogInUrl = makeQueryOrMutationField<
   },
   description:
     "新規登録かログインするためのURLを得る。受け取ったURLをlocation.hrefに代入するとかして、各サービスの認証画面へ"
+});
+
+const createTeamAndSetManagerRole = makeQueryOrMutationField<
+  {
+    accessToken: database.AccessToken;
+    teamName: string;
+  },
+  database.GraphQLTeamData
+>({
+  type: g.GraphQLNonNull(userDataGraphQLType),
+  args: {
+    accessToken: {
+      type: g.GraphQLNonNull(g.GraphQLString),
+      description: "アクセストークン"
+    },
+    teamName: {
+      type: g.GraphQLNonNull(g.GraphQLString),
+      description: "チーム名"
+    }
+  },
+  description: "監督としてチームを登録する",
+  resolve: async args => {
+    return await database.createTeamAndSetManagerRole(
+      args.accessToken,
+      args.teamName
+    );
+  }
+});
+
+const joinTeamAndSetPlayerRole = makeQueryOrMutationField<
+  {
+    accessToken: database.AccessToken;
+    teamId: database.TeamId;
+  },
+  database.GraphQLTeamData
+>({
+  type: g.GraphQLNonNull(teamGraphQLType),
+  args: {
+    accessToken: {
+      type: g.GraphQLNonNull(g.GraphQLString),
+      description: "アクセストークン"
+    },
+    teamId: {
+      type: g.GraphQLNonNull(g.GraphQLString),
+      description: "チームID"
+    }
+  },
+  description: "選手としてチームに参加する",
+  resolve: async args => {
+    return await database.joinTeamAndSetPlayerRole(
+      args.accessToken,
+      args.teamId
+    );
+  }
 });
 
 export const schema = new g.GraphQLSchema({

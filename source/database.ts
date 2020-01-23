@@ -50,15 +50,27 @@ export type UserData = {
   lastIssuedAccessTokenHash: AccessTokenHash;
   createdAt: admin.firestore.Timestamp;
   role: UserRole | null;
-  team: TeamId | null;
+  teamId: TeamId | null;
 };
 
 export type GraphQLUserData = {
   id: UserId;
   name: string;
   imageFileHash: FileHash;
-  createdAt: admin.firestore.Timestamp;
+  createdAt: Date;
   role: UserRole | null;
+  team: GraphQLTeamData | null;
+};
+
+export type GraphQLUserDataLowCost = {
+  id: UserId;
+  name: string;
+  createdAt: Date;
+  imageFileHash: FileHash;
+  role: UserRole | null;
+  team: {
+    id: TeamId;
+  } | null;
 };
 
 export const roleValues = {
@@ -75,6 +87,28 @@ export type UserRole = keyof typeof roleValues;
 export type TeamData = {
   name: string;
   createdAt: admin.firestore.Timestamp;
+  managerId: UserId;
+  playerIdList: Array<UserId>;
+};
+
+export type GraphQLTeamData = {
+  id: TeamId;
+  name: string;
+  createdAt: Date;
+  manager: GraphQLUserData;
+  playerList: Array<GraphQLUserData>;
+};
+
+export type GraphQLTeamDataLowCost = {
+  id: TeamId;
+  name: string;
+  createdAt: Date;
+  manager: {
+    id: UserId;
+  };
+  playerList: Array<{
+    id: UserId;
+  }>;
 };
 
 export type PdcaData = {
@@ -222,7 +256,7 @@ export const getUserFromLineAccountId = async (
 
 export const getUserByAccessToken = async (
   accessToken: AccessToken
-): Promise<GraphQLUserData> => {
+): Promise<GraphQLUserDataLowCost> => {
   const querySnapshot = await database
     .collection("user")
     .where("lastIssuedAccessTokenHash", "==", hashAccessToken(accessToken))
@@ -235,9 +269,15 @@ export const getUserByAccessToken = async (
   return {
     id: documentValue.id,
     name: data.name,
-    createdAt: data.createdAt,
+    createdAt: data.createdAt.toDate(),
     imageFileHash: data.imageFileHash,
-    role: data.role
+    role: data.role,
+    team:
+      data.teamId === null
+        ? null
+        : {
+            id: data.teamId
+          }
   };
 };
 
@@ -325,7 +365,7 @@ export const createUser = async (
       lastIssuedAccessTokenHash: hashAccessToken(accessToken),
       lineUserId: lineUserId,
       role: null,
-      team: null
+      teamId: null
     });
   return accessToken;
 };
@@ -346,6 +386,20 @@ export const updateAccessToken = async (
   return newAccessToken;
 };
 
+const setUserRoleAndTeamId = async (
+  userId: UserId,
+  role: UserRole,
+  teamId: TeamId
+): Promise<void> => {
+  await database
+    .collection("user")
+    .doc(userId)
+    .update({
+      role: role,
+      teamId: teamId
+    });
+};
+
 /**
  * Firebase Cloud Storageからファイルを読み込むReadable Streamを取得する
  * @param fileHash ファイルハッシュ
@@ -354,7 +408,9 @@ export const getReadableStream = (fileHash: FileHash): stream.Readable => {
   return storageDefaultBucket.file(fileHash).createReadStream();
 };
 
-export const getUserData = async (userId: UserId): Promise<GraphQLUserData> => {
+export const getUserData = async (
+  userId: UserId
+): Promise<GraphQLUserDataLowCost> => {
   const documentValue = (
     await database
       .collection("user")
@@ -369,6 +425,97 @@ export const getUserData = async (userId: UserId): Promise<GraphQLUserData> => {
     name: documentValue.name,
     imageFileHash: documentValue.imageFileHash,
     role: documentValue.role,
-    createdAt: documentValue.createdAt
+    createdAt: documentValue.createdAt.toDate(),
+    team:
+      documentValue.teamId === null
+        ? null
+        : {
+            id: documentValue.teamId
+          }
+  };
+};
+
+const createTeam = async (
+  teamName: string,
+  managerUserId: UserId
+): Promise<GraphQLTeamDataLowCost> => {
+  const teamId = createRandomId() as TeamId;
+  const nowTime = new Date();
+  await database
+    .collection("team")
+    .doc(teamId)
+    .create({
+      name: teamName,
+      createdAt: admin.firestore.Timestamp.fromDate(nowTime),
+      managerId: managerUserId,
+      playerIdList: []
+    });
+  return {
+    id: teamId,
+    name: teamName,
+    createdAt: nowTime,
+    manager: {
+      id: managerUserId
+    },
+    playerList: []
+  };
+};
+
+const joinTeam = async (
+  teamId: TeamId,
+  userId: UserId
+): Promise<{ id: TeamId }> => {
+  const result = await database
+    .collection("team")
+    .doc(teamId)
+    .update({
+      playerIdList: admin.firestore.FieldValue.arrayUnion(userId)
+    });
+  return {
+    id: teamId
+  };
+};
+
+export const getTeamData = async (
+  teamId: TeamId
+): Promise<GraphQLTeamDataLowCost> => {
+  const documentValue = (
+    await database
+      .collection("team")
+      .doc(teamId)
+      .get()
+  ).data();
+  if (documentValue === undefined) {
+    throw new Error(`team (${teamId}) dose not exist`);
+  }
+  return {
+    id: teamId,
+    name: documentValue.name,
+    manager: {
+      id: documentValue.managerId
+    },
+    playerList: documentValue.playerIdList.map(playerId => ({ id: playerId })),
+    createdAt: documentValue.createdAt.toDate()
+  };
+};
+
+export const createTeamAndSetManagerRole = async (
+  accessToken: AccessToken,
+  teamName: string
+): Promise<GraphQLTeamDataLowCost> => {
+  const userData = await getUserByAccessToken(accessToken);
+  const teamData = await createTeam(teamName, userData.id);
+  await setUserRoleAndTeamId(userData.id, "manager", teamData.id);
+  return teamData;
+};
+
+export const joinTeamAndSetPlayerRole = async (
+  accessToken: AccessToken,
+  teamId: TeamId
+): Promise<{ id: TeamId }> => {
+  const userData = await getUserByAccessToken(accessToken);
+  await joinTeam(teamId, userData.id);
+  return {
+    id: teamId
   };
 };
