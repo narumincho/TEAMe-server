@@ -53,7 +53,24 @@ export type UserData = {
   team: TeamId | null;
 };
 
-export type UserRole = "manager" | "player";
+export type GraphQLUserData = {
+  id: UserId;
+  name: string;
+  imageFileHash: FileHash;
+  createdAt: admin.firestore.Timestamp;
+  role: UserRole | null;
+};
+
+export const roleValues = {
+  manager: {
+    description: "マネージャー"
+  },
+  player: {
+    description: "選手"
+  }
+};
+
+export type UserRole = keyof typeof roleValues;
 
 export type TeamData = {
   name: string;
@@ -75,13 +92,53 @@ export type CycleData = {
 };
 
 export type PlanData = {
-  [key in string]:
-    | string
-    | {
-        [key in string]:
-          | string
-          | { [key in string]: string | { [key in string]: string } };
-      };
+  [key in string]: Question;
+};
+
+export type Question =
+  | {
+      _: "singleLineText";
+      value: string;
+    }
+  | {
+      _: "multiLineText";
+      value: string;
+    }
+  | {
+      _: "choices";
+      value: string;
+    };
+
+export type QuestionType =
+  | {
+      _: "singleLineText";
+      minLength: number;
+      maxLength: number;
+    }
+  | {
+      _: "multiLineText";
+      minLength: number;
+      maxLength: number;
+    }
+  | {
+      _: "choices";
+      choice: ReadonlyArray<{
+        id: string;
+        label: string;
+      }>;
+      limitation: ChoiceLimitation;
+    };
+
+export type Question_ =
+  | "singleLineText"
+  | "multiLineText"
+  | "choices"
+  | "image";
+
+export type ChoiceLabel = {};
+
+export type ChoiceLimitation = {
+  minCount: number;
 };
 
 export type UserId = string & { _userId: never };
@@ -160,6 +217,27 @@ export const getUserFromLineAccountId = async (
   return {
     id: queryDocumentSnapshot.id as UserId,
     data: queryDocumentSnapshot.data()
+  };
+};
+
+export const getUserByAccessToken = async (
+  accessToken: AccessToken
+): Promise<GraphQLUserData> => {
+  const querySnapshot = await database
+    .collection("user")
+    .where("lastIssuedAccessTokenHash", "==", hashAccessToken(accessToken))
+    .get();
+  if (querySnapshot.docs.length === 0) {
+    throw new Error(`accessToken is old or, invalid.`);
+  }
+  const documentValue = querySnapshot.docs[0];
+  const data = documentValue.data();
+  return {
+    id: documentValue.id,
+    name: data.name,
+    createdAt: data.createdAt,
+    imageFileHash: data.imageFileHash,
+    role: data.role
   };
 };
 
@@ -274,4 +352,23 @@ export const updateAccessToken = async (
  */
 export const getReadableStream = (fileHash: FileHash): stream.Readable => {
   return storageDefaultBucket.file(fileHash).createReadStream();
+};
+
+export const getUserData = async (userId: UserId): Promise<GraphQLUserData> => {
+  const documentValue = (
+    await database
+      .collection("user")
+      .doc(userId)
+      .get()
+  ).data();
+  if (documentValue === undefined) {
+    throw new Error(`user (${userId}) dose not exist`);
+  }
+  return {
+    id: userId,
+    name: documentValue.name,
+    imageFileHash: documentValue.imageFileHash,
+    role: documentValue.role,
+    createdAt: documentValue.createdAt
+  };
 };

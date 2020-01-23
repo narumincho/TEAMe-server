@@ -126,6 +126,101 @@ const urlTypeScalarTypeConfig: g.GraphQLScalarTypeConfig<URL, string> = {
 
 const urlGraphQLType = new g.GraphQLScalarType(urlTypeScalarTypeConfig);
 
+const dateTimeTypeConfig: g.GraphQLScalarTypeConfig<Date, number> = {
+  name: "DateTime",
+  description:
+    "日付と時刻。1970年1月1日 00:00:00 UTCから指定した日時までの経過時間をミリ秒で表した数値 2038年問題を回避するために64bitFloatの型を使う",
+  serialize: (value: Date): number => value.getTime(),
+  parseValue: (value: number): Date => new Date(value),
+  parseLiteral: ast => {
+    if (ast.kind === "FloatValue" || ast.kind === "IntValue") {
+      try {
+        return new Date(Number.parseInt(ast.value));
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }
+};
+
+export const dateTimeGraphQLType = new g.GraphQLScalarType(dateTimeTypeConfig);
+
+const roleGraphQLType = new g.GraphQLEnumType({
+  name: "Role",
+  values: database.roleValues,
+  description: "役割"
+});
+
+const setUserData = async (
+  source: Return<database.GraphQLUserData>
+): ReturnType<typeof database.getUserData> => {
+  const data = await database.getUserData(source.id);
+  source.name = data.name;
+  source.imageFileHash = data.imageFileHash;
+  source.role = data.role;
+  source.createdAt = data.createdAt;
+  return data;
+};
+
+const userDataGraphQLType: g.GraphQLObjectType<
+  database.GraphQLUserData,
+  void,
+  {}
+> = new g.GraphQLObjectType({
+  name: "UserData",
+  fields: makeObjectFieldMap<database.GraphQLUserData>({
+    id: {
+      description: "ユーザー識別するためのID",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    name: makeObjectField({
+      args: {},
+      description: "ユーザー名",
+      resolve: async source => {
+        if (source.name === undefined) {
+          return (await setUserData(source)).name;
+        }
+        return source.name;
+      },
+      type: g.GraphQLNonNull(g.GraphQLString)
+    }),
+    imageFileHash: makeObjectField({
+      args: {},
+      description: "ユーザーのプロフィール画像のファイルハッシュ",
+      resolve: async source => {
+        if (source.imageFileHash === undefined) {
+          return (await setUserData(source)).imageFileHash;
+        }
+        return source.imageFileHash;
+      },
+      type: g.GraphQLNonNull(hashGraphQLType)
+    }),
+    role: makeObjectField({
+      args: {},
+      description: "ユーザーの役割",
+      resolve: async source => {
+        if (source.role === undefined) {
+          return (await setUserData(source)).role;
+        }
+        return source.role;
+      },
+      type: roleGraphQLType
+    }),
+    createdAt: makeObjectField({
+      args: {},
+      description: "ユーザーが作られた日時",
+      resolve: async source => {
+        if (source.createdAt === undefined) {
+          return (await setUserData(source)).createdAt;
+        }
+        return source.createdAt;
+      },
+      type: g.GraphQLNonNull(dateTimeGraphQLType)
+    })
+  })
+});
+
 /**
  * 新規登録かログインするためのURLを得る。
  */
@@ -170,6 +265,22 @@ export const schema = new g.GraphQLSchema({
         description: "TEAMeにあいさつをする",
         resolve: async () => {
           return "やあ、TEAMeのAPIサーバーだよ";
+        }
+      }),
+      getUserData: makeQueryOrMutationField<
+        { accessToken: database.AccessToken },
+        database.GraphQLUserData
+      >({
+        type: g.GraphQLNonNull(userDataGraphQLType),
+        args: {
+          accessToken: {
+            description: "アクセストークン",
+            type: g.GraphQLNonNull(g.GraphQLString)
+          }
+        },
+        description: "ユーザーのデータ",
+        resolve: async args => {
+          return await database.getUserByAccessToken(args.accessToken);
         }
       })
     }
