@@ -476,6 +476,28 @@ const joinTeam = async (
   };
 };
 
+const teamDataToGraphQLTeamLowCost = (
+  teamId: TeamId,
+  teamData: TeamData
+): GraphQLTeamDataLowCost => ({
+  id: teamId,
+  name: teamData.name,
+  manager: {
+    id: teamData.managerId
+  },
+  playerList: teamData.playerIdList.map(playerId => ({ id: playerId })),
+  createdAt: teamData.createdAt.toDate()
+});
+
+export const getAllTeam = async (): Promise<Array<GraphQLTeamDataLowCost>> => {
+  const docs: Array<typedFirestore.QueryDocumentSnapshot<TeamId, TeamData>> = (
+    await database.collection("team").get()
+  ).docs;
+  return docs.map<GraphQLTeamDataLowCost>(doc =>
+    teamDataToGraphQLTeamLowCost(doc.id, doc.data())
+  );
+};
+
 export const getTeamData = async (
   teamId: TeamId
 ): Promise<GraphQLTeamDataLowCost> => {
@@ -488,15 +510,7 @@ export const getTeamData = async (
   if (documentValue === undefined) {
     throw new Error(`team (${teamId}) dose not exist`);
   }
-  return {
-    id: teamId,
-    name: documentValue.name,
-    manager: {
-      id: documentValue.managerId
-    },
-    playerList: documentValue.playerIdList.map(playerId => ({ id: playerId })),
-    createdAt: documentValue.createdAt.toDate()
-  };
+  return teamDataToGraphQLTeamLowCost(teamId, documentValue);
 };
 
 export const createTeamAndSetManagerRole = async (

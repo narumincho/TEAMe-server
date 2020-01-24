@@ -107,7 +107,8 @@ const makeQueryOrMutationField = <
   return {
     type: data.type,
     args: data.args,
-    resolve: (source, args, context, info) => data.resolve(args),
+    resolve: (source, args, context, info): Promise<Return<Type>> =>
+      data.resolve(args),
     description: data.description
   };
 };
@@ -426,14 +427,28 @@ export const schema = new g.GraphQLSchema({
         resolve: async args => {
           return await database.getUserByAccessToken(args.accessToken);
         }
-      })
+      }),
+      getAllTeam: makeQueryOrMutationField<{}, Array<database.GraphQLTeamData>>(
+        {
+          type: g.GraphQLNonNull(
+            g.GraphQLList(g.GraphQLNonNull(teamGraphQLType))
+          ),
+          args: {},
+          description: "すべてのチームを取得する",
+          resolve: async () => {
+            return await database.getAllTeam();
+          }
+        }
+      )
     }
   }),
   mutation: new g.GraphQLObjectType({
     name: "Mutation",
     description: "データを作成、更新ができる",
     fields: {
-      getLineLogInUrl
+      getLineLogInUrl,
+      createTeamAndSetManagerRole,
+      joinTeamAndSetPlayerRole
     }
   })
 });
