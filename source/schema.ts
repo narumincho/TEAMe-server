@@ -315,34 +315,38 @@ const teamGraphQLType = new g.GraphQLObjectType<
 /**
  * 新規登録かログインするためのURLを得る。
  */
-const getLineLogInUrl = makeQueryOrMutationField<
-  {
-    path: string;
-  },
-  URL
->({
-  type: g.GraphQLNonNull(urlGraphQLType),
-  args: {
-    path: {
-      type: g.GraphQLNonNull(g.GraphQLString),
-      description: "ログインして返ってくるURLのパス"
-    }
-  },
-  resolve: async args => {
-    return data.urlFromStringWithQuery(
-      "access.line.me/oauth2/v2.1/authorize",
-      new Map([
-        ["response_type", "code"],
-        ["client_id", data.lineLogInClientId],
-        ["redirect_uri", data.lineLogInRedirectUri],
-        ["scope", "profile openid"],
-        ["state", await database.generateAndWriteLogInState(args.path)]
-      ])
-    );
-  },
-  description:
-    "新規登録かログインするためのURLを得る。受け取ったURLをlocation.hrefに代入するとかして、各サービスの認証画面へ"
-});
+const getLineLogInUrl = (origin: data.Origin) =>
+  makeQueryOrMutationField<
+    {
+      path: string;
+    },
+    URL
+  >({
+    type: g.GraphQLNonNull(urlGraphQLType),
+    args: {
+      path: {
+        type: g.GraphQLNonNull(g.GraphQLString),
+        description: "ログインして返ってくるURLのパス"
+      }
+    },
+    resolve: async args => {
+      return data.urlFromStringWithQuery(
+        "access.line.me/oauth2/v2.1/authorize",
+        new Map([
+          ["response_type", "code"],
+          ["client_id", data.lineLogInClientId],
+          ["redirect_uri", data.lineLogInRedirectUri],
+          ["scope", "profile openid"],
+          [
+            "state",
+            await database.generateAndWriteLogInState(args.path, origin)
+          ]
+        ])
+      );
+    },
+    description:
+      "新規登録かログインするためのURLを得る。受け取ったURLをlocation.hrefに代入するとかして、各サービスの認証画面へ"
+  });
 
 const createTeamAndSetManagerRole = makeQueryOrMutationField<
   {
@@ -398,71 +402,72 @@ const joinTeamAndSetPlayerRole = makeQueryOrMutationField<
   }
 });
 
-export const schema = new g.GraphQLSchema({
-  query: new g.GraphQLObjectType({
-    name: "Query",
-    description:
-      "データを取得できる。データを取得したときに影響は他に及ばさない",
-    fields: {
-      hello: makeQueryOrMutationField<{}, string>({
-        type: g.GraphQLNonNull(g.GraphQLString),
-        args: {},
-        description: "TEAMeにあいさつをする",
-        resolve: async () => {
-          return "やあ、TEAMeのAPIサーバーだよ";
-        }
-      }),
-      userPrivate: makeQueryOrMutationField<
-        { accessToken: database.AccessToken },
-        database.GraphQLUserData
-      >({
-        type: g.GraphQLNonNull(userDataGraphQLType),
-        args: {
-          accessToken: {
-            description: "アクセストークン",
-            type: g.GraphQLNonNull(g.GraphQLString)
+export const schema = (origin: data.Origin) =>
+  new g.GraphQLSchema({
+    query: new g.GraphQLObjectType({
+      name: "Query",
+      description:
+        "データを取得できる。データを取得したときに影響は他に及ばさない",
+      fields: {
+        hello: makeQueryOrMutationField<{}, string>({
+          type: g.GraphQLNonNull(g.GraphQLString),
+          args: {},
+          description: "TEAMeにあいさつをする",
+          resolve: async () => {
+            return "やあ、TEAMeのAPIサーバーだよ";
           }
-        },
-        description: "ユーザーのデータ",
-        resolve: async args => {
-          return await database.getUserByAccessToken(args.accessToken);
-        }
-      }),
-      user: makeQueryOrMutationField<
-        { userId: database.UserId },
-        database.GraphQLUserData
-      >({
-        type: g.GraphQLNonNull(userDataGraphQLType),
-        args: {
-          userId: {
-            description: "取得したいユーザーID",
-            type: g.GraphQLNonNull(g.GraphQLString)
+        }),
+        userPrivate: makeQueryOrMutationField<
+          { accessToken: database.AccessToken },
+          database.GraphQLUserData
+        >({
+          type: g.GraphQLNonNull(userDataGraphQLType),
+          args: {
+            accessToken: {
+              description: "アクセストークン",
+              type: g.GraphQLNonNull(g.GraphQLString)
+            }
+          },
+          description: "ユーザーのデータ",
+          resolve: async args => {
+            return await database.getUserByAccessToken(args.accessToken);
           }
-        },
-        description: "説明文",
-        resolve: async args => {
-          return await database.getUserData(args.userId);
-        }
-      }),
-      allTeam: makeQueryOrMutationField<{}, Array<database.GraphQLTeamData>>({
-        type: g.GraphQLNonNull(
-          g.GraphQLList(g.GraphQLNonNull(teamGraphQLType))
-        ),
-        args: {},
-        description: "すべてのチームを取得する",
-        resolve: async () => {
-          return await database.getAllTeam();
-        }
-      })
-    }
-  }),
-  mutation: new g.GraphQLObjectType({
-    name: "Mutation",
-    description: "データを作成、更新ができる",
-    fields: {
-      getLineLogInUrl,
-      createTeamAndSetManagerRole,
-      joinTeamAndSetPlayerRole
-    }
-  })
-});
+        }),
+        user: makeQueryOrMutationField<
+          { userId: database.UserId },
+          database.GraphQLUserData
+        >({
+          type: g.GraphQLNonNull(userDataGraphQLType),
+          args: {
+            userId: {
+              description: "取得したいユーザーID",
+              type: g.GraphQLNonNull(g.GraphQLString)
+            }
+          },
+          description: "説明文",
+          resolve: async args => {
+            return await database.getUserData(args.userId);
+          }
+        }),
+        allTeam: makeQueryOrMutationField<{}, Array<database.GraphQLTeamData>>({
+          type: g.GraphQLNonNull(
+            g.GraphQLList(g.GraphQLNonNull(teamGraphQLType))
+          ),
+          args: {},
+          description: "すべてのチームを取得する",
+          resolve: async () => {
+            return await database.getAllTeam();
+          }
+        })
+      }
+    }),
+    mutation: new g.GraphQLObjectType({
+      name: "Mutation",
+      description: "データを作成、更新ができる",
+      fields: {
+        getLineLogInUrl: getLineLogInUrl(origin),
+        createTeamAndSetManagerRole,
+        joinTeamAndSetPlayerRole
+      }
+    })
+  });

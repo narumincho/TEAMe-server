@@ -124,10 +124,11 @@ export const api = functions
       response.status(200).send("");
       return;
     }
-    graphqlExpress({ schema: schema.schema, graphiql: true })(
-      request,
-      response
-    );
+    console.log("hostname", request.hostname);
+    graphqlExpress({
+      schema: schema.schema(data.appOrigin),
+      graphiql: true
+    })(request, response);
   });
 
 /* =====================================================================
@@ -135,9 +136,14 @@ export const api = functions
  *   https://us-central1-teame-c1a32.cloudfunctions.net/logInCallback
  * =====================================================================
  */
-const createAccessTokenUrl = (path: string, accessToken: string): URL => {
+const createAccessTokenUrl = (
+  path: string,
+  origin: data.Origin,
+  accessToken: string
+): URL => {
   return data.urlFromStringWithFragment(
-    data.appHostName + path,
+    origin,
+    path,
     new Map([["accessToken", accessToken]])
   );
 };
@@ -234,7 +240,11 @@ export const logInCallback = functions
         lineData.sub
       );
       response.redirect(
-        createAccessTokenUrl(pathData.path, accessToken).toString()
+        createAccessTokenUrl(
+          pathData.path,
+          pathData.origin,
+          accessToken
+        ).toString()
       );
       return;
     }
@@ -242,6 +252,7 @@ export const logInCallback = functions
     response.redirect(
       createAccessTokenUrl(
         pathData.path,
+        pathData.origin,
         await database.updateAccessToken(userData.id)
       ).toString()
     );

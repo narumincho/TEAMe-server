@@ -16,15 +16,17 @@ export const urlFromStringWithQuery = (
 };
 
 /**
- *
- * @param hostNameAndPath https:// を除いたホスト名とパス narumincho.com/path など
+ * フラグメント (#から始まるサーバーに送らないデータ)を?クエリのようにキーと値の組のデータとしてURLを構成する
+ * @param origin
+ * @param path /data など
  * @param fragment URLSearchParamsとしてエンコードされる
  */
 export const urlFromStringWithFragment = (
-  hostNameAndPath: string,
+  origin: Origin,
+  path: string,
   fragment: Map<string, string>
 ): URL => {
-  const url = new URL("https://" + hostNameAndPath);
+  const url = new URL(originToString(origin) + path);
   url.hash = new URLSearchParams(fragment).toString();
   return url;
 };
@@ -41,3 +43,21 @@ export const lineLogInClientId = "1653666716";
 export const lineLogInChannelSecret: string = functions.config()["line-log-in"][
   "channel-secret"
 ];
+
+export type Origin = { _: "app" } | { _: "debug"; port: number };
+
+export const appOrigin: Origin = { _: "app" };
+
+export const debugOrigin = (portNumber: number): Origin => ({
+  _: "debug",
+  port: portNumber
+});
+
+export const originToString = (origin: Origin): string => {
+  switch (origin._) {
+    case "app":
+      return "https://" + appHostName;
+    case "debug":
+      return "http://localhost:" + origin.port.toString();
+  }
+};
