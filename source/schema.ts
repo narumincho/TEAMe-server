@@ -412,7 +412,7 @@ export const schema = new g.GraphQLSchema({
           return "やあ、TEAMeのAPIサーバーだよ";
         }
       }),
-      getUserData: makeQueryOrMutationField<
+      userPrivate: makeQueryOrMutationField<
         { accessToken: database.AccessToken },
         database.GraphQLUserData
       >({
@@ -428,18 +428,32 @@ export const schema = new g.GraphQLSchema({
           return await database.getUserByAccessToken(args.accessToken);
         }
       }),
-      getAllTeam: makeQueryOrMutationField<{}, Array<database.GraphQLTeamData>>(
-        {
-          type: g.GraphQLNonNull(
-            g.GraphQLList(g.GraphQLNonNull(teamGraphQLType))
-          ),
-          args: {},
-          description: "すべてのチームを取得する",
-          resolve: async () => {
-            return await database.getAllTeam();
+      user: makeQueryOrMutationField<
+        { userId: database.UserId },
+        database.GraphQLUserData
+      >({
+        type: g.GraphQLNonNull(userDataGraphQLType),
+        args: {
+          userId: {
+            description: "取得したいユーザーID",
+            type: g.GraphQLNonNull(g.GraphQLString)
           }
+        },
+        description: "説明文",
+        resolve: async args => {
+          return await database.getUserData(args.userId);
         }
-      )
+      }),
+      allTeam: makeQueryOrMutationField<{}, Array<database.GraphQLTeamData>>({
+        type: g.GraphQLNonNull(
+          g.GraphQLList(g.GraphQLNonNull(teamGraphQLType))
+        ),
+        args: {},
+        description: "すべてのチームを取得する",
+        resolve: async () => {
+          return await database.getAllTeam();
+        }
+      })
     }
   }),
   mutation: new g.GraphQLObjectType({
