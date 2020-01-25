@@ -200,7 +200,7 @@ export const logInCallback = functions
       response
         .status(400)
         .send(
-          `LINE LogIn Error: Definy dose not generate state (${query.state})`
+          `LINE LogIn Error: TEAMe dose not generate state (${query.state})`
         );
       return;
     }
