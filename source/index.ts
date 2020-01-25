@@ -112,21 +112,13 @@ export const indexHtml = functions
 export const api = functions
   .runWith({ memory: "2GB" })
   .https.onRequest((request, response) => {
-    console.log("API called");
-    response.setHeader(
-      "access-control-allow-origin",
-      data.appSchemeAndHostName
-    );
-    response.setHeader("vary", "Origin");
-    if (request.method === "OPTIONS") {
-      response.setHeader("access-control-allow-methods", "POST, GET, OPTIONS");
-      response.setHeader("access-control-allow-headers", "content-type");
-      response.status(200).send("");
+    const corsResult = supportCrossOriginResourceSharing(request, response);
+    if (!corsResult.isNecessaryMainProcessing) {
       return;
     }
-    console.log("hostname", request.hostname);
+
     graphqlExpress({
-      schema: schema.schema(data.appOrigin),
+      schema: schema.schema(corsResult.origin),
       graphiql: true
     })(request, response);
   });
@@ -264,12 +256,8 @@ export const logInCallback = functions
  * =====================================================================
  */
 export const file = functions.https.onRequest(async (request, response) => {
-  response.setHeader("access-control-allow-origin", data.appSchemeAndHostName);
-  response.setHeader("vary", "Origin");
-  if (request.method === "OPTIONS") {
-    response.setHeader("access-control-allow-methods", "POST, GET, OPTIONS");
-    response.setHeader("access-control-allow-headers", "content-type");
-    response.status(200).send("");
+  const corsResult = supportCrossOriginResourceSharing(request, response);
+  if (!corsResult.isNecessaryMainProcessing) {
     return;
   }
   if (request.method === "GET") {
@@ -281,3 +269,60 @@ export const file = functions.https.onRequest(async (request, response) => {
   }
   response.status(400).send("invalid file parameter");
 });
+
+let sampleApiCount = 0;
+export const sampleApi = functions.https.onRequest(
+  async (request, response) => {
+    response.send(sampleApiCount.toString(10));
+    sampleApiCount += 1;
+  }
+);
+
+/**
+ * CrossOriginResourceSharing の 処理をする
+ */
+const supportCrossOriginResourceSharing = (
+  request: functions.https.Request,
+  response: functions.Response
+): { isNecessaryMainProcessing: boolean; origin: data.Origin } => {
+  response.setHeader("vary", "Origin");
+  const headerOrigin = request.headers["origin"];
+  if (typeof headerOrigin === "string") {
+    const localHostPort = headerOrigin.match(/http:\/\/localhost:(\d+)/);
+    if (localHostPort !== null) {
+      const origin = data.debugOrigin(Number.parseInt(localHostPort[1], 10));
+      response.setHeader("access-control-allow-origin", headerOrigin);
+      if (request.method === "OPTIONS") {
+        response.setHeader(
+          "access-control-allow-methods",
+          "POST, GET, OPTIONS"
+        );
+        response.setHeader("access-control-allow-headers", "content-type");
+        response.status(200).send("");
+        return {
+          origin,
+          isNecessaryMainProcessing: false
+        };
+      }
+      return {
+        origin,
+        isNecessaryMainProcessing: true
+      };
+    }
+  }
+  response.setHeader("access-control-allow-origin", data.appSchemeAndHostName);
+  response.setHeader("vary", "Origin");
+  if (request.method === "OPTIONS") {
+    response.setHeader("access-control-allow-methods", "POST, GET, OPTIONS");
+    response.setHeader("access-control-allow-headers", "content-type");
+    response.status(200).send("");
+    return {
+      origin: data.appOrigin,
+      isNecessaryMainProcessing: false
+    };
+  }
+  return {
+    origin: data.appOrigin,
+    isNecessaryMainProcessing: true
+  };
+};
