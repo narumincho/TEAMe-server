@@ -270,14 +270,6 @@ export const file = functions.https.onRequest(async (request, response) => {
   response.status(400).send("invalid file parameter");
 });
 
-let sampleApiCount = 0;
-export const sampleApi = functions.https.onRequest(
-  async (request, response) => {
-    response.send(sampleApiCount.toString(10));
-    sampleApiCount += 1;
-  }
-);
-
 /**
  * CrossOriginResourceSharing の 処理をする
  */
