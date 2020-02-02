@@ -365,7 +365,7 @@ export const createUser = async (
     .doc(userId)
     .create({
       name: name,
-      createdAt: admin.firestore.Timestamp.fromDate(new Date()),
+      createdAt: admin.firestore.Timestamp.now(),
       imageFileHash: imageFileHash,
       lastIssuedAccessTokenHash: hashAccessToken(accessToken),
       lineUserId: lineUserId,
