@@ -6,23 +6,7 @@ import axios, { AxiosResponse } from "axios";
 import { URLSearchParams, URL } from "url";
 import * as data from "./data";
 import * as jsonWebToken from "jsonwebtoken";
-
-const escapeHtml = (text: string): string =>
-  text.replace(/[&'`"<>]/g, (s: string): string =>
-    s === "&"
-      ? "&amp;"
-      : s === "'"
-      ? "&#x27;"
-      : s === "`"
-      ? "&#x60;"
-      : s === '"'
-      ? "&quot;"
-      : s === "<"
-      ? "&lt;"
-      : s === ">"
-      ? "&gt;"
-      : ""
-  );
+import * as html from "@narumincho/html";
 
 const pathToDescriptionAndImageUrl = async (
   path: string
@@ -30,7 +14,7 @@ const pathToDescriptionAndImageUrl = async (
   return {
     title: "TEAMe",
     description: "デジタル練習ノート",
-    imageUrl: data.appSchemeAndHostName + "/assets/icon.png"
+    imageUrl: data.appOrigin + "/assets/icon.png"
   };
 };
 
@@ -47,60 +31,39 @@ export const indexHtml = functions
   .region("us-central1")
   .https.onRequest(async (request, response) => {
     if (request.hostname !== data.appHostName) {
-      response.redirect(data.appSchemeAndHostName);
+      response.redirect(data.appOrigin);
     }
     const descriptionAndImageUrl = await pathToDescriptionAndImageUrl(
       request.path
     );
 
     response.setHeader("content-type", "text/html");
-    response.send(`<!doctype html>
-<html lang="ja">
+    response.send(
+      html.toString({
+        appName: "TEAMe デジタル練習ノート",
+        pageName: descriptionAndImageUrl.title,
+        iconPath: ["assets", "icon.png"],
+        coverImageUrl: descriptionAndImageUrl.imageUrl,
+        twitterCard: html.TwitterCard.SummaryCard,
+        scriptUrlList: [data.appOrigin + "/main.js"],
+        description: descriptionAndImageUrl.description,
+        themeColor: "#a7d86e",
+        language: html.Language.Japanese,
+        manifestPath: ["assets", "manifest.json"],
+        origin: data.appOrigin,
+        path: request.url.substring(1).split("/"),
+        javaScriptMustBeAvailable: true,
+        style: `html {
+          height: 100%;
+      }
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <meta name="description" content="TEAMe デジタル練習ノート">
-    <meta name="theme-color" content="#a7d86e">
-    <title>TEAMe デジタル練習ノート</title>
-    <link rel="icon" href="${data.appSchemeAndHostName}/assets/icon.png">
-    <link rel="manifest" href="${
-      data.appSchemeAndHostName
-    }/assets/manifest.json">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta property="og:url" content="${data.appSchemeAndHostName}${
-      request.url
-    }">
-    <meta property="og:title" content="${escapeHtml(
-      descriptionAndImageUrl.title
-    )}">
-    <meta property="og:site_name" content="TEAMe">
-    <meta property="og:description" content="${escapeHtml(
-      descriptionAndImageUrl.description
-    )}">
-    <meta property="og:image" content="${escapeHtml(
-      descriptionAndImageUrl.imageUrl
-    )}">
-    <script src="${data.appSchemeAndHostName}/main.js" defer></script>
-    <style>
-        html {
-            height: 100%;
-        }
-
-        body {
-            margin: 0;
-            height: 100%;
-        }
-    </style>
-</head>
-
-<body>
-    プログラムをダウンロード中……
-    <noscript>
-        TEAMeではJavaScriptを使用します。ブラウザの設定で有効にしてください。
-    </noscript>
-</body>
-`);
+      body {
+          margin: 0;
+          height: 100%;
+      }`,
+        body: [html.div(null, "TEAMeを読み込み中……")]
+      })
+    );
   });
 
 /* =====================================================================
@@ -192,7 +155,7 @@ export const logInCallback = functions
   .https.onRequest(async (request, response) => {
     const query: { code: unknown; state: unknown } = request.query;
     if (typeof query.code !== "string" || typeof query.state !== "string") {
-      response.redirect(data.appSchemeAndHostName);
+      response.redirect(data.appOrigin);
       return;
     }
     const pathData = await database.checkExistsAndDeleteState(query.state);
@@ -302,19 +265,19 @@ const supportCrossOriginResourceSharing = (
       };
     }
   }
-  response.setHeader("access-control-allow-origin", data.appSchemeAndHostName);
+  response.setHeader("access-control-allow-origin", data.appOrigin);
   response.setHeader("vary", "Origin");
   if (request.method === "OPTIONS") {
     response.setHeader("access-control-allow-methods", "POST, GET, OPTIONS");
     response.setHeader("access-control-allow-headers", "content-type");
     response.status(200).send("");
     return {
-      origin: data.appOrigin,
+      origin: data.releaseOrigin,
       isNecessaryMainProcessing: false
     };
   }
   return {
-    origin: data.appOrigin,
+    origin: data.releaseOrigin,
     isNecessaryMainProcessing: true
   };
 };

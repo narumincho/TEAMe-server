@@ -33,7 +33,7 @@ export const urlFromStringWithFragment = (
 
 export const appHostName = "teame-c1a32.web.app";
 
-export const appSchemeAndHostName = "https://" + appHostName;
+export const appOrigin = "https://" + appHostName;
 
 export const lineLogInRedirectUri =
   "https://us-central1-teame-c1a32.cloudfunctions.net/logInCallback";
@@ -44,20 +44,27 @@ export const lineLogInChannelSecret: string = functions.config()["line-log-in"][
   "channel-secret"
 ];
 
-export type Origin = { _: "app" } | { _: "debug"; port: number };
+export type Origin =
+  | { _: Origin_.Release }
+  | { _: Origin_.Debug; port: number };
 
-export const appOrigin: Origin = { _: "app" };
+const enum Origin_ {
+  Release,
+  Debug
+}
+
+export const releaseOrigin: Origin = { _: Origin_.Release };
 
 export const debugOrigin = (portNumber: number): Origin => ({
-  _: "debug",
+  _: Origin_.Debug,
   port: portNumber
 });
 
 export const originToString = (origin: Origin): string => {
   switch (origin._) {
-    case "app":
+    case Origin_.Release:
       return "https://" + appHostName;
-    case "debug":
+    case Origin_.Debug:
       return "http://localhost:" + origin.port.toString();
   }
 };
