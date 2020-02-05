@@ -63,7 +63,7 @@ export const debugOrigin = (portNumber: number): Origin => ({
 export const originToString = (origin: Origin): string => {
   switch (origin._) {
     case Origin_.Release:
-      return "https://" + appHostName;
+      return appOrigin;
     case Origin_.Debug:
       return "http://localhost:" + origin.port.toString();
   }

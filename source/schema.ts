@@ -354,7 +354,7 @@ const createTeamAndSetManagerRole = makeQueryOrMutationField<
     accessToken: database.AccessToken;
     teamName: string;
   },
-  database.GraphQLTeamData
+  database.GraphQLUserData
 >({
   type: g.GraphQLNonNull(userDataGraphQLType),
   args: {

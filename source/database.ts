@@ -521,11 +521,11 @@ export const getTeamData = async (
 export const createTeamAndSetManagerRole = async (
   accessToken: AccessToken,
   teamName: string
-): Promise<GraphQLTeamDataLowCost> => {
+): Promise<GraphQLUserDataLowCost> => {
   const userData = await getUserByAccessToken(accessToken);
   const teamData = await createTeam(teamName, userData.id);
   await setUserRoleAndTeamId(userData.id, "manager", teamData.id);
-  return teamData;
+  return userData;
 };
 
 export const joinTeamAndSetPlayerRole = async (
