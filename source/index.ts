@@ -224,9 +224,10 @@ export const file = functions.https.onRequest(async (request, response) => {
     return;
   }
   if (request.method === "GET") {
+    const pathList = request.path.split("/");
     response.setHeader("cache-control", "public, max-age=31536000");
     database
-      .getReadableStream(schema.parseFileHash(request.path.slice(1)))
+      .getReadableStream(schema.parseFileHash(pathList[pathList.length - 1]))
       .pipe(response);
     return;
   }
