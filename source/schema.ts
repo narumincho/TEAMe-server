@@ -245,6 +245,7 @@ const setTeam = async (
 ): Promise<database.GraphQLTeamDataLowCost> => {
   const data = await database.getTeamData(source.id);
   source.name = data.name;
+  source.goal = data.goal;
   source.createdAt = data.createdAt;
   if (source.manager === undefined) {
     source.manager = data.manager;
@@ -275,6 +276,17 @@ const teamGraphQLType = new g.GraphQLObjectType<
           return (await setTeam(source)).name;
         }
         return source.name;
+      }
+    }),
+    goal: makeObjectField({
+      args: {},
+      description: "チーム目標",
+      type: g.GraphQLNonNull(g.GraphQLString),
+      resolve: async source => {
+        if (source.goal === undefined) {
+          return (await setTeam(source)).goal;
+        }
+        return source.goal;
       }
     }),
     createdAt: makeObjectField({
