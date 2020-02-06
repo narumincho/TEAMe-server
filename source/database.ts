@@ -466,19 +466,20 @@ const createTeam = async (
   };
 };
 
-const joinTeam = async (
-  teamId: TeamId,
-  userId: UserId
-): Promise<{ id: TeamId }> => {
-  const result = await database
+const joinTeam = async (teamId: TeamId, userId: UserId): Promise<void> => {
+  await database
     .collection("team")
     .doc(teamId)
     .update({
       playerIdList: admin.firestore.FieldValue.arrayUnion(userId)
     });
-  return {
-    id: teamId
-  };
+  await database
+    .collection("user")
+    .doc(userId)
+    .update({
+      role: "player",
+      teamId: teamId
+    });
 };
 
 const teamDataToGraphQLTeamLowCost = (
@@ -534,5 +535,5 @@ export const joinTeamAndSetPlayerRole = async (
 ): Promise<GraphQLUserDataLowCost> => {
   const userData = await getUserByAccessToken(accessToken);
   await joinTeam(teamId, userData.id);
-  return userData;
+  return { ...userData, role: "player", team: { id: teamId } };
 };
