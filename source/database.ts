@@ -555,3 +555,17 @@ export const joinTeamAndSetPlayerRole = async (
   await joinTeam(teamId, userData.id);
   return { ...userData, role: "player", team: { id: teamId } };
 };
+
+export const updatePersonalGoal = async (
+  accessToken: AccessToken,
+  goal: string
+): Promise<GraphQLUserDataLowCost> => {
+  const userData = await getUserByAccessToken(accessToken);
+  await database
+    .collection("user")
+    .doc(userData.id)
+    .update({
+      goal: goal
+    });
+  return { ...userData, goal: goal };
+};

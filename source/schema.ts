@@ -408,6 +408,30 @@ const joinTeamAndSetPlayerRole = makeQueryOrMutationField<
   }
 });
 
+const updatePersonalGoal = makeQueryOrMutationField<
+  {
+    accessToken: database.AccessToken;
+    goal: string;
+  },
+  database.GraphQLUserData
+>({
+  type: g.GraphQLNonNull(userDataGraphQLType),
+  args: {
+    accessToken: {
+      description: "アクセストークン",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    goal: {
+      description: "目標",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    }
+  },
+  description: "個人目標か指導目標を変更する",
+  resolve: async args => {
+    return await database.updatePersonalGoal(args.accessToken, args.goal);
+  }
+});
+
 export const schema = (origin: data.Origin): g.GraphQLSchema =>
   new g.GraphQLSchema({
     query: new g.GraphQLObjectType({
@@ -489,7 +513,8 @@ export const schema = (origin: data.Origin): g.GraphQLSchema =>
       fields: {
         getLineLogInUrl: getLineLogInUrl(origin),
         createTeamAndSetManagerRole,
-        joinTeamAndSetPlayerRole
+        joinTeamAndSetPlayerRole,
+        updatePersonalGoal
       }
     })
   });
