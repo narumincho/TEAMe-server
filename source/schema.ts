@@ -444,6 +444,31 @@ const updatePersonalGoal = makeQueryOrMutationField<
   }
 });
 
+const updateTeamGoal = makeQueryOrMutationField<
+  {
+    accessToken: database.AccessToken;
+    goal: string;
+  },
+  database.GraphQLTeamData
+>({
+  type: g.GraphQLNonNull(teamGraphQLType),
+  args: {
+    accessToken: {
+      description: "アクセストークン",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    goal: {
+      description: "目標",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    }
+  },
+  description:
+    "チーム目標を変更する。変更できるのはチームの指導者か、選手である必要がある",
+  resolve: async args => {
+    return await database.updateTeamGoal(args.accessToken, args.goal);
+  }
+});
+
 export const schema = (origin: data.Origin): g.GraphQLSchema =>
   new g.GraphQLSchema({
     query: new g.GraphQLObjectType({
@@ -526,7 +551,8 @@ export const schema = (origin: data.Origin): g.GraphQLSchema =>
         getLineLogInUrl: getLineLogInUrl(origin),
         createTeamAndSetManagerRole,
         joinTeamAndSetPlayerRole,
-        updatePersonalGoal
+        updatePersonalGoal,
+        updateTeamGoal
       }
     })
   });

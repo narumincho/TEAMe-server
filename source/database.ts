@@ -575,3 +575,23 @@ export const updatePersonalGoal = async (
     });
   return { ...userData, goal: goal };
 };
+
+export const updateTeamGoal = async (
+  accessToken: AccessToken,
+  goal: string
+): Promise<Return<GraphQLTeamDataLowCost>> => {
+  const userData = await getUserByAccessToken(accessToken);
+  const teamId = userData.team?.id;
+  if (teamId === undefined) {
+    throw new Error(
+      "チームに所属していないユーザはチームの目標を変えることができません"
+    );
+  }
+  await database
+    .collection("team")
+    .doc(teamId)
+    .update({
+      goal: goal
+    });
+  return { id: teamId, goal: goal };
+};
