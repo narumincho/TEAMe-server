@@ -1,15 +1,12 @@
 import { URL, URLSearchParams } from "url";
 import * as functions from "firebase-functions";
 
-export const urlFromString = (domainAndPath: string): URL =>
-  new URL("https://" + domainAndPath);
-
-export const urlFromStringWithQuery = (
+export const urlWithQuery = (
   domain: string,
   path: ReadonlyArray<string>,
   query: Map<string, string>
 ): URL => {
-  const url = new URL("https://" + domain + path.join("/"));
+  const url = new URL("https://" + domain + "/" + path.join("/"));
   for (const [key, value] of query) {
     url.searchParams.append(key, value);
   }
@@ -22,7 +19,7 @@ export const urlFromStringWithQuery = (
  * @param path /data など
  * @param fragment URLSearchParamsとしてエンコードされる
  */
-export const urlFromStringWithFragment = (
+export const urlWithFragment = (
   origin: Origin,
   path: string,
   fragment: Map<string, string>

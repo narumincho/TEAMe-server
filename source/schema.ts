@@ -332,7 +332,7 @@ const getLineLogInUrl = (
       }
     },
     resolve: async args => {
-      return data.urlFromStringWithQuery(
+      return data.urlWithQuery(
         "access.line.me",
         ["oauth2", "v2.1", "authorize"],
         new Map([

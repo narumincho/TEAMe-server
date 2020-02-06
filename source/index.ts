@@ -96,7 +96,7 @@ const createAccessTokenUrl = (
   origin: data.Origin,
   accessToken: string
 ): URL => {
-  return data.urlFromStringWithFragment(
+  return data.urlWithFragment(
     origin,
     path,
     new Map([["accessToken", accessToken]])
