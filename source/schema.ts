@@ -464,6 +464,22 @@ export const schema = (origin: data.Origin): g.GraphQLSchema =>
           resolve: async () => {
             return await database.getAllTeam();
           }
+        }),
+        team: makeQueryOrMutationField<
+          { id: database.TeamId },
+          database.GraphQLTeamData
+        >({
+          type: g.GraphQLNonNull(teamGraphQLType),
+          args: {
+            id: {
+              description: "チームのID",
+              type: g.GraphQLNonNull(g.GraphQLString)
+            }
+          },
+          description: "チームのデータ",
+          resolve: async args => {
+            return await database.getTeamData(args.id);
+          }
         })
       }
     }),

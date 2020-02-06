@@ -58,6 +58,7 @@ export const indexHtml = functions
       }
 
       body {
+          display: grid;
           margin: 0;
           height: 100%;
       }`,
