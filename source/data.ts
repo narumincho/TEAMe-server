@@ -5,10 +5,11 @@ export const urlFromString = (domainAndPath: string): URL =>
   new URL("https://" + domainAndPath);
 
 export const urlFromStringWithQuery = (
-  domainAndPath: string,
+  domain: string,
+  path: ReadonlyArray<string>,
   query: Map<string, string>
 ): URL => {
-  const url = new URL("https://" + domainAndPath);
+  const url = new URL("https://" + domain + path.join("/"));
   for (const [key, value] of query) {
     url.searchParams.append(key, value);
   }

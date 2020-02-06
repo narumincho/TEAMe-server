@@ -114,11 +114,6 @@ const makeQueryOrMutationField = <
   };
 };
 
-const graphQLNonNullList = (
-  type: g.GraphQLNullableType
-): g.GraphQLNonNull<g.GraphQLNullableType> =>
-  g.GraphQLNonNull(g.GraphQLList(g.GraphQLNonNull(type)));
-
 const urlTypeScalarTypeConfig: g.GraphQLScalarTypeConfig<URL, string> = {
   name: "URL",
   description: `URL 文字列で指定する 例"https://narumincho.com/definy/spec.html"`,
@@ -174,7 +169,11 @@ const userDataGraphQLType: g.GraphQLObjectType<
   {}
 > = new g.GraphQLObjectType({
   name: "UserData",
-  fields: () =>
+  fields: (): g.GraphQLFieldConfigMap<
+    database.GraphQLUserData,
+    void,
+    unknown
+  > =>
     makeObjectFieldMap<database.GraphQLUserData>({
       id: {
         description: "ユーザー識別するためのID",
@@ -316,7 +315,9 @@ const teamGraphQLType = new g.GraphQLObjectType<
 /**
  * 新規登録かログインするためのURLを得る。
  */
-const getLineLogInUrl = (origin: data.Origin) =>
+const getLineLogInUrl = (
+  origin: data.Origin
+): g.GraphQLFieldConfig<void, void, unknown> =>
   makeQueryOrMutationField<
     {
       path: string;
@@ -332,7 +333,8 @@ const getLineLogInUrl = (origin: data.Origin) =>
     },
     resolve: async args => {
       return data.urlFromStringWithQuery(
-        "access.line.me/oauth2/v2.1/authorize",
+        "access.line.me",
+        ["oauth2", "v2.1", "authorize"],
         new Map([
           ["response_type", "code"],
           ["client_id", data.lineLogInClientId],
@@ -381,9 +383,9 @@ const joinTeamAndSetPlayerRole = makeQueryOrMutationField<
     accessToken: database.AccessToken;
     teamId: database.TeamId;
   },
-  database.GraphQLTeamData
+  database.GraphQLUserData
 >({
-  type: g.GraphQLNonNull(teamGraphQLType),
+  type: g.GraphQLNonNull(userDataGraphQLType),
   args: {
     accessToken: {
       type: g.GraphQLNonNull(g.GraphQLString),
@@ -403,7 +405,7 @@ const joinTeamAndSetPlayerRole = makeQueryOrMutationField<
   }
 });
 
-export const schema = (origin: data.Origin) =>
+export const schema = (origin: data.Origin): g.GraphQLSchema =>
   new g.GraphQLSchema({
     query: new g.GraphQLObjectType({
       name: "Query",

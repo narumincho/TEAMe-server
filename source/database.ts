@@ -531,10 +531,8 @@ export const createTeamAndSetManagerRole = async (
 export const joinTeamAndSetPlayerRole = async (
   accessToken: AccessToken,
   teamId: TeamId
-): Promise<{ id: TeamId }> => {
+): Promise<GraphQLUserDataLowCost> => {
   const userData = await getUserByAccessToken(accessToken);
   await joinTeam(teamId, userData.id);
-  return {
-    id: teamId
-  };
+  return userData;
 };
