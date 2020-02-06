@@ -7,6 +7,18 @@ import axios from "axios";
 import { URL } from "url";
 import * as data from "./data";
 
+/** resolveで返すべき部分型を生成する */
+export type Return<Type> = Type extends Array<infer E>
+  ? Array<ReturnLoop<E>>
+  : ReturnLoop<Type>;
+
+/** resolveで返すべき部分型を生成する型関数のループ */
+type ReturnLoop<Type> = Type extends { id: infer idType }
+  ? { id: idType } & { [k in keyof Type]?: Return<Type[k]> }
+  : Type extends { hash: infer hashType }
+  ? { hash: hashType } & { [k in keyof Type]?: Return<Type[k]> }
+  : { [k in keyof Type]: Return<Type[k]> };
+
 const app = admin.initializeApp();
 
 const database = (app.firestore() as unknown) as typedFirestore.Firestore<{
@@ -47,6 +59,7 @@ const storageDefaultBucket = app.storage().bucket();
 
 export type UserData = {
   name: string;
+  goal: string;
   lineUserId: LineUserId;
   imageFileHash: FileHash;
   lastIssuedAccessTokenHash: AccessTokenHash;
@@ -57,6 +70,7 @@ export type UserData = {
 
 export type GraphQLUserData = {
   id: UserId;
+  goal: string;
   name: string;
   imageFileHash: FileHash;
   createdAt: Date;
@@ -66,6 +80,7 @@ export type GraphQLUserData = {
 
 export type GraphQLUserDataLowCost = {
   id: UserId;
+  goal: string;
   name: string;
   createdAt: Date;
   imageFileHash: FileHash;
@@ -276,6 +291,7 @@ export const getUserByAccessToken = async (
     name: data.name,
     createdAt: data.createdAt.toDate(),
     imageFileHash: data.imageFileHash,
+    goal: data.goal,
     role: data.role,
     team:
       data.teamId === null
@@ -365,6 +381,7 @@ export const createUser = async (
     .doc(userId)
     .create({
       name: name,
+      goal: "",
       createdAt: admin.firestore.Timestamp.now(),
       imageFileHash: imageFileHash,
       lastIssuedAccessTokenHash: hashAccessToken(accessToken),
@@ -430,6 +447,7 @@ export const getUserData = async (
     name: documentValue.name,
     imageFileHash: documentValue.imageFileHash,
     role: documentValue.role,
+    goal: documentValue.goal,
     createdAt: documentValue.createdAt.toDate(),
     team:
       documentValue.teamId === null

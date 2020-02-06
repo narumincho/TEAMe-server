@@ -69,7 +69,10 @@ const makeObjectField = <
 >(data: {
   type: g.GraphQLOutputType;
   args: { [k in keyof T]: { type: g.GraphQLInputType } };
-  resolve: (source: Return<Type>, args: T) => Promise<Return<Type[Key]>>;
+  resolve: (
+    source: database.Return<Type>,
+    args: T
+  ) => Promise<database.Return<Type[Key]>>;
   description: string;
 }): GraphQLFieldConfigWithArgs<Type, Key> =>
   ({
@@ -78,18 +81,6 @@ const makeObjectField = <
     resolve: (source, args, context, info) => data.resolve(source as any, args),
     description: data.description
   } as GraphQLFieldConfigWithArgs<Type, Key>);
-
-/** resolveで返すべき部分型を生成する */
-type Return<Type> = Type extends Array<infer E>
-  ? Array<ReturnLoop<E>>
-  : ReturnLoop<Type>;
-
-/** resolveで返すべき部分型を生成する型関数のループ */
-type ReturnLoop<Type> = Type extends { id: infer idType }
-  ? { id: idType } & { [k in keyof Type]?: Return<Type[k]> }
-  : Type extends { hash: infer hashType }
-  ? { hash: hashType } & { [k in keyof Type]?: Return<Type[k]> }
-  : { [k in keyof Type]: Return<Type[k]> };
 
 const makeQueryOrMutationField = <
   Args extends { [k in string]: unknown },
@@ -102,13 +93,13 @@ const makeQueryOrMutationField = <
       description: Maybe<string>;
     };
   };
-  resolve: (args: Args) => Promise<Return<Type>>;
+  resolve: (args: Args) => Promise<database.Return<Type>>;
   description: string;
 }): g.GraphQLFieldConfig<void, void, any> => {
   return {
     type: data.type,
     args: data.args,
-    resolve: (source, args, context, info): Promise<Return<Type>> =>
+    resolve: (source, args, context, info): Promise<database.Return<Type>> =>
       data.resolve(args),
     description: data.description
   };
@@ -150,11 +141,12 @@ const roleGraphQLType = new g.GraphQLEnumType({
 });
 
 const setUserData = async (
-  source: Return<database.GraphQLUserData>
+  source: database.Return<database.GraphQLUserData>
 ): Promise<database.GraphQLUserDataLowCost> => {
   const data = await database.getUserData(source.id);
   source.name = data.name;
   source.imageFileHash = data.imageFileHash;
+  source.goal = data.goal;
   source.role = data.role;
   source.createdAt = data.createdAt;
   if (source.team === undefined) {
@@ -212,6 +204,17 @@ const userDataGraphQLType: g.GraphQLObjectType<
         },
         type: roleGraphQLType
       }),
+      goal: makeObjectField({
+        args: {},
+        description: "個人目標/指導目標",
+        resolve: async source => {
+          if (source.goal === undefined) {
+            return (await setUserData(source)).goal;
+          }
+          return source.goal;
+        },
+        type: g.GraphQLNonNull(g.GraphQLString)
+      }),
       createdAt: makeObjectField({
         args: {},
         description: "ユーザーが作られた日時",
@@ -238,7 +241,7 @@ const userDataGraphQLType: g.GraphQLObjectType<
 });
 
 const setTeam = async (
-  source: Return<database.GraphQLTeamData>
+  source: database.Return<database.GraphQLTeamData>
 ): Promise<database.GraphQLTeamDataLowCost> => {
   const data = await database.getTeamData(source.id);
   source.name = data.name;
