@@ -337,7 +337,9 @@ const userDataGraphQLType: g.GraphQLObjectType<
       cycleList: makeObjectField({
         args: {},
         description: "作ったサイクル",
-        type: g.GraphQLNonNull(cycleGraphQLType),
+        type: g.GraphQLNonNull(
+          g.GraphQLList(g.GraphQLNonNull(cycleGraphQLType))
+        ),
         resolve: async source => {
           if (source.cycleList === undefined) {
             return (await setUserData(source)).cycleList;
