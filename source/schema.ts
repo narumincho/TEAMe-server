@@ -140,6 +140,99 @@ const roleGraphQLType = new g.GraphQLEnumType({
   description: "役割"
 });
 
+const setCycle = async (
+  source: database.Return<database.GraphQLCycleData>
+): Promise<database.GraphQLCycleData> => {
+  const data = await database.getCycleData(source.id);
+  source.plan = data.plan;
+  source.do = data.do;
+  source.check = data.check;
+  source.act = data.act;
+  source.createdAt = data.createdAt;
+  source.updateAt = data.updateAt;
+  return data;
+};
+
+const cycleGraphQLType: g.GraphQLObjectType<
+  database.GraphQLCycleData,
+  void,
+  {}
+> = new g.GraphQLObjectType({
+  name: "Pdca",
+  fields: makeObjectFieldMap<database.GraphQLCycleData>({
+    id: {
+      description: "Pdcaを識別するためのID",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    plan: makeObjectField({
+      description: "Plan",
+      args: {},
+      type: g.GraphQLNonNull(g.GraphQLString),
+      resolve: async source => {
+        if (source.plan === undefined) {
+          return (await setCycle(source)).plan;
+        }
+        return source.plan;
+      }
+    }),
+    do: makeObjectField({
+      description: "Do",
+      args: {},
+      type: g.GraphQLNonNull(g.GraphQLString),
+      resolve: async source => {
+        if (source.do === undefined) {
+          return (await setCycle(source)).do;
+        }
+        return source.do;
+      }
+    }),
+    check: makeObjectField({
+      description: "Check",
+      args: {},
+      type: g.GraphQLNonNull(g.GraphQLString),
+      resolve: async source => {
+        if (source.check === undefined) {
+          return (await setCycle(source)).check;
+        }
+        return source.check;
+      }
+    }),
+    act: makeObjectField({
+      description: "Act",
+      args: {},
+      type: g.GraphQLNonNull(g.GraphQLString),
+      resolve: async source => {
+        if (source.act === undefined) {
+          return (await setCycle(source)).act;
+        }
+        return source.act;
+      }
+    }),
+    createdAt: makeObjectField({
+      description: "Plan",
+      args: {},
+      type: g.GraphQLNonNull(dateTimeGraphQLType),
+      resolve: async source => {
+        if (source.createdAt === undefined) {
+          return (await setCycle(source)).createdAt;
+        }
+        return source.createdAt;
+      }
+    }),
+    updateAt: makeObjectField({
+      description: "Plan",
+      args: {},
+      type: g.GraphQLNonNull(dateTimeGraphQLType),
+      resolve: async source => {
+        if (source.updateAt === undefined) {
+          return (await setCycle(source)).updateAt;
+        }
+        return source.updateAt;
+      }
+    })
+  })
+});
+
 const setUserData = async (
   source: database.Return<database.GraphQLUserData>
 ): Promise<database.GraphQLUserDataLowCost> => {
@@ -151,6 +244,9 @@ const setUserData = async (
   source.createdAt = data.createdAt;
   if (source.team === undefined) {
     source.team = data.team;
+  }
+  if (source.cycleList === undefined) {
+    source.cycleList = data.cycleList;
   }
   return data;
 };
@@ -235,6 +331,17 @@ const userDataGraphQLType: g.GraphQLObjectType<
             return (await setUserData(source)).team;
           }
           return source.team;
+        }
+      }),
+      cycleList: makeObjectField({
+        args: {},
+        description: "作ったサイクル",
+        type: g.GraphQLNonNull(cycleGraphQLType),
+        resolve: async source => {
+          if (source.cycleList === undefined) {
+            return (await setUserData(source)).cycleList;
+          }
+          return source.cycleList;
         }
       })
     })
@@ -469,6 +576,45 @@ const updateTeamGoal = makeQueryOrMutationField<
   }
 });
 
+const createCycle = makeQueryOrMutationField<
+  {
+    accessToken: database.AccessToken;
+    plan: string;
+    do: string;
+    check: string;
+    act: string;
+  },
+  database.GraphQLCycleData
+>({
+  type: g.GraphQLNonNull(cycleGraphQLType),
+  args: {
+    accessToken: {
+      description: "アクセストークン",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    plan: {
+      description: "Plan",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    do: {
+      description: "Do",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    check: {
+      description: "Check",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    act: {
+      description: "Act",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    }
+  },
+  description: "新しいCycleを作成する",
+  resolve: async args => {
+    return await database.createCycle(args);
+  }
+});
+
 export const schema = (origin: data.Origin): g.GraphQLSchema =>
   new g.GraphQLSchema({
     query: new g.GraphQLObjectType({
@@ -541,6 +687,20 @@ export const schema = (origin: data.Origin): g.GraphQLSchema =>
           resolve: async args => {
             return await database.getTeamData(args.id);
           }
+        }),
+        cycle: makeQueryOrMutationField<
+          { id: database.CycleId },
+          database.GraphQLCycleData
+        >({
+          type: g.GraphQLNonNull(cycleGraphQLType),
+          args: {
+            id: {
+              description: "CycleのId",
+              type: g.GraphQLNonNull(g.GraphQLString)
+            }
+          },
+          description: "Cycleのデータ",
+          resolve: args => database.getCycleData(args.id)
         })
       }
     }),
@@ -552,7 +712,8 @@ export const schema = (origin: data.Origin): g.GraphQLSchema =>
         createTeamAndSetManagerRole,
         joinTeamAndSetPlayerRole,
         updatePersonalGoal,
-        updateTeamGoal
+        updateTeamGoal,
+        createCycle
       }
     })
   });

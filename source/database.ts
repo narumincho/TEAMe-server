@@ -37,11 +37,6 @@ const database = (app.firestore() as unknown) as typedFirestore.Firestore<{
     value: TeamData;
     subCollections: {};
   };
-  pdca: {
-    key: PdcaId;
-    value: PdcaData;
-    subCollections: {};
-  };
   cycle: {
     key: CycleId;
     value: CycleData;
@@ -66,6 +61,7 @@ export type UserData = {
   createdAt: admin.firestore.Timestamp;
   role: UserRole | null;
   teamId: TeamId | null;
+  cycleIdList: Array<CycleId>;
 };
 
 export type GraphQLUserData = {
@@ -76,6 +72,7 @@ export type GraphQLUserData = {
   createdAt: Date;
   role: UserRole | null;
   team: GraphQLTeamData | null;
+  cycleList: Array<GraphQLCycleData>;
 };
 
 export type GraphQLUserDataLowCost = {
@@ -88,6 +85,7 @@ export type GraphQLUserDataLowCost = {
   team: {
     id: TeamId;
   } | null;
+  cycleList: Array<{ id: CycleId }>;
 };
 
 export const roleValues = {
@@ -131,75 +129,28 @@ export type GraphQLTeamDataLowCost = {
   }>;
 };
 
-export type PdcaData = {
-  name: string;
-  createdAt: admin.firestore.Timestamp;
-};
-
 export type CycleData = {
   createdAt: admin.firestore.Timestamp;
-  plan: PlanData;
+  plan: string;
   do: string;
   check: string;
   act: string;
   updateAt: admin.firestore.Timestamp;
 };
 
-export type PlanData = {
-  [key in string]: Question;
-};
-
-export type Question =
-  | {
-      _: "singleLineText";
-      value: string;
-    }
-  | {
-      _: "multiLineText";
-      value: string;
-    }
-  | {
-      _: "choices";
-      value: string;
-    };
-
-export type QuestionType =
-  | {
-      _: "singleLineText";
-      minLength: number;
-      maxLength: number;
-    }
-  | {
-      _: "multiLineText";
-      minLength: number;
-      maxLength: number;
-    }
-  | {
-      _: "choices";
-      choice: ReadonlyArray<{
-        id: string;
-        label: string;
-      }>;
-      limitation: ChoiceLimitation;
-    };
-
-export type Question_ =
-  | "singleLineText"
-  | "multiLineText"
-  | "choices"
-  | "image";
-
-export type ChoiceLabel = {};
-
-export type ChoiceLimitation = {
-  minCount: number;
+export type GraphQLCycleData = {
+  id: CycleId;
+  createdAt: Date;
+  plan: string;
+  do: string;
+  check: string;
+  act: string;
+  updateAt: Date;
 };
 
 export type UserId = string & { _userId: never };
 
 export type TeamId = string & { _teamId: never };
-
-export type PdcaId = string & { _pdcaId: never };
 
 export type CycleId = string & { _cycle: never };
 
@@ -301,7 +252,8 @@ export const getUserByAccessToken = async (
         ? null
         : {
             id: data.teamId
-          }
+          },
+    cycleList: data.cycleIdList.map(id => ({ id: id }))
   };
 };
 
@@ -390,7 +342,8 @@ export const createUser = async (
       lastIssuedAccessTokenHash: hashAccessToken(accessToken),
       lineUserId: lineUserId,
       role: null,
-      teamId: null
+      teamId: null,
+      cycleIdList: []
     });
   return accessToken;
 };
@@ -457,7 +410,8 @@ export const getUserData = async (
         ? null
         : {
             id: documentValue.teamId
-          }
+          },
+    cycleList: documentValue.cycleIdList.map(id => ({ id }))
   };
 };
 
@@ -594,4 +548,67 @@ export const updateTeamGoal = async (
       goal: goal
     });
   return { id: teamId, goal: goal };
+};
+
+export const getCycleData = async (
+  cycleId: CycleId
+): Promise<GraphQLCycleData> => {
+  const cycleData = (
+    await database
+      .collection("cycle")
+      .doc(cycleId)
+      .get()
+  ).data();
+  if (cycleData === undefined) {
+    throw new Error(
+      "指定したCycleが見つからなかった id=" + (cycleId as string)
+    );
+  }
+  return {
+    id: cycleId,
+    plan: cycleData.plan,
+    do: cycleData.do,
+    check: cycleData.check,
+    act: cycleData.act,
+    createdAt: cycleData.createdAt.toDate(),
+    updateAt: cycleData.updateAt.toDate()
+  };
+};
+
+export const createCycle = async (args: {
+  accessToken: AccessToken;
+  plan: string;
+  do: string;
+  check: string;
+  act: string;
+}): Promise<GraphQLCycleData> => {
+  const userData = await getUserByAccessToken(args.accessToken);
+  const cycleId = createRandomId() as CycleId;
+  const cycleData: CycleData = {
+    plan: args.plan,
+    do: args.do,
+    check: args.check,
+    act: args.act,
+    createdAt: admin.firestore.Timestamp.now(),
+    updateAt: admin.firestore.Timestamp.now()
+  };
+  await database
+    .collection("cycle")
+    .doc(cycleId)
+    .create(cycleData);
+  await database
+    .collection("user")
+    .doc(userData.id)
+    .update({
+      cycleIdList: admin.firestore.FieldValue.arrayUnion(cycleId)
+    });
+  return {
+    id: cycleId,
+    plan: cycleData.plan,
+    do: cycleData.do,
+    check: cycleData.check,
+    act: cycleData.act,
+    createdAt: cycleData.createdAt.toDate(),
+    updateAt: cycleData.updateAt.toDate()
+  };
 };
