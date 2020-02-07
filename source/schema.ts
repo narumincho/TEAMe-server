@@ -315,7 +315,7 @@ const teamGraphQLType = new g.GraphQLObjectType<
       args: {},
       description: "選手",
       type: g.GraphQLNonNull(
-        g.GraphQLList(g.GraphQLNonNull(g.GraphQLList(userDataGraphQLType)))
+        g.GraphQLList(g.GraphQLNonNull(userDataGraphQLType))
       ),
       resolve: async source => {
         if (source.playerList === undefined) {
