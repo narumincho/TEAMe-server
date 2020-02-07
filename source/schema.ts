@@ -158,7 +158,8 @@ const cycleGraphQLType: g.GraphQLObjectType<
   void,
   {}
 > = new g.GraphQLObjectType({
-  name: "Pdca",
+  name: "Cycle",
+  description: "1つのPDCA。cycle",
   fields: makeObjectFieldMap<database.GraphQLCycleData>({
     id: {
       description: "Pdcaを識別するためのID",
