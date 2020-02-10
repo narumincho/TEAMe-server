@@ -630,6 +630,50 @@ const createCycle = makeQueryOrMutationField<
   }
 });
 
+const updateCycle = makeQueryOrMutationField<
+  {
+    accessToken: database.AccessToken;
+    cycleId: database.CycleId;
+    plan: string;
+    do: string;
+    check: string;
+    act: string;
+  },
+  database.GraphQLCycleData
+>({
+  type: g.GraphQLNonNull(cycleGraphQLType),
+  args: {
+    accessToken: {
+      description: "アクセストークン",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    cycleId: {
+      description: "更新するCycleのID",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    plan: {
+      description: "Plan",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    do: {
+      description: "Do",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    check: {
+      description: "Check",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    act: {
+      description: "Act",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    }
+  },
+  description: "Cycleを更新する",
+  resolve: async args => {
+    return await database.updateCycle(args);
+  }
+});
+
 export const schema = (origin: data.Origin): g.GraphQLSchema =>
   new g.GraphQLSchema({
     query: new g.GraphQLObjectType({
@@ -728,7 +772,8 @@ export const schema = (origin: data.Origin): g.GraphQLSchema =>
         joinTeamAndSetPlayerRole,
         updatePersonalGoal,
         updateTeamGoal,
-        createCycle
+        createCycle,
+        updateCycle
       }
     })
   });

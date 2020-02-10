@@ -618,3 +618,49 @@ export const createCycle = async (args: {
     updateAt: cycleData.updateAt.toDate()
   };
 };
+
+export const updateCycle = async (args: {
+  accessToken: AccessToken;
+  cycleId: CycleId;
+  plan: string;
+  do: string;
+  check: string;
+  act: string;
+}): Promise<GraphQLCycleData> => {
+  const userData = await getUserByAccessToken(args.accessToken);
+  const updateAt = admin.firestore.Timestamp.now();
+  const cycleData = (
+    await database
+      .collection("cycle")
+      .doc(args.cycleId)
+      .get()
+  ).data();
+  if (cycleData === undefined) {
+    throw new Error("cycle = " + (args.cycleId as string) + " dose not exists");
+  }
+  await database
+    .collection("cycle")
+    .doc(args.cycleId)
+    .update({
+      plan: args.plan,
+      do: args.do,
+      check: args.check,
+      act: args.act,
+      updateAt: updateAt
+    });
+  await database
+    .collection("user")
+    .doc(userData.id)
+    .update({
+      cycleIdList: admin.firestore.FieldValue.arrayUnion(args.cycleId)
+    });
+  return {
+    id: args.cycleId,
+    plan: args.plan,
+    do: args.do,
+    check: args.check,
+    act: args.act,
+    createdAt: cycleData.createdAt.toDate(),
+    updateAt: updateAt.toDate()
+  };
+};
