@@ -356,6 +356,7 @@ const setTeam = async (
   const data = await database.getTeamData(source.id);
   source.name = data.name;
   source.goal = data.goal;
+  source.information = data.information;
   source.createdAt = data.createdAt;
   if (source.manager === undefined) {
     source.manager = data.manager;
@@ -397,6 +398,17 @@ const teamGraphQLType = new g.GraphQLObjectType<
           return (await setTeam(source)).goal;
         }
         return source.goal;
+      }
+    }),
+    information: makeObjectField({
+      args: {},
+      description: "チームの共有事項",
+      type: g.GraphQLNonNull(g.GraphQLString),
+      resolve: async source => {
+        if (source.information === undefined) {
+          return (await setTeam(source)).information;
+        }
+        return source.information;
       }
     }),
     createdAt: makeObjectField({

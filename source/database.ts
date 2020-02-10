@@ -102,6 +102,7 @@ export type UserRole = keyof typeof roleValues;
 export type TeamData = {
   name: string;
   goal: string;
+  information: string;
   createdAt: admin.firestore.Timestamp;
   managerId: UserId;
   playerIdList: Array<UserId>;
@@ -111,6 +112,7 @@ export type GraphQLTeamData = {
   id: TeamId;
   name: string;
   goal: string;
+  information: string;
   createdAt: Date;
   manager: GraphQLUserData;
   playerList: Array<GraphQLUserData>;
@@ -120,6 +122,7 @@ export type GraphQLTeamDataLowCost = {
   id: TeamId;
   name: string;
   goal: string;
+  information: string;
   createdAt: Date;
   manager: {
     id: UserId;
@@ -427,6 +430,7 @@ const createTeam = async (
     .create({
       name: teamName,
       goal: "",
+      information: "",
       createdAt: admin.firestore.Timestamp.fromDate(nowTime),
       managerId: managerUserId,
       playerIdList: []
@@ -435,6 +439,7 @@ const createTeam = async (
     id: teamId,
     name: teamName,
     goal: "",
+    information: "",
     createdAt: nowTime,
     manager: {
       id: managerUserId
@@ -466,6 +471,7 @@ const teamDataToGraphQLTeamLowCost = (
   id: teamId,
   name: teamData.name,
   goal: teamData.goal,
+  information: teamData.information,
   manager: {
     id: teamData.managerId
   },
