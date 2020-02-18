@@ -556,6 +556,26 @@ export const updateTeamGoal = async (
   return { id: teamId, goal: goal };
 };
 
+export const updateTeamInformation = async (
+  accessToken: AccessToken,
+  information: string
+): Promise<Return<GraphQLTeamDataLowCost>> => {
+  const userData = await getUserByAccessToken(accessToken);
+  const teamId = userData.team?.id;
+  if (teamId === undefined) {
+    throw new Error(
+      "チームに所属していないユーザはチームの共有事項を変えることができません"
+    );
+  }
+  await database
+    .collection("team")
+    .doc(teamId)
+    .update({
+      information: information
+    });
+  return { id: teamId, goal: information };
+};
+
 export const getCycleData = async (
   cycleId: CycleId
 ): Promise<GraphQLCycleData> => {

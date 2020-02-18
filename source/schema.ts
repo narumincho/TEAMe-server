@@ -591,6 +591,34 @@ const updateTeamGoal = makeQueryOrMutationField<
   }
 });
 
+const updateTeamInformation = makeQueryOrMutationField<
+  {
+    accessToken: database.AccessToken;
+    information: string;
+  },
+  database.GraphQLTeamData
+>({
+  type: g.GraphQLNonNull(teamGraphQLType),
+  args: {
+    accessToken: {
+      description: "アクセストークン",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    },
+    information: {
+      description: "共有事項",
+      type: g.GraphQLNonNull(g.GraphQLString)
+    }
+  },
+  description:
+    "チームの共有事項を変更する。変更できるのはチームの指導者か、選手である必要がある",
+  resolve: async args => {
+    return await database.updateTeamInformation(
+      args.accessToken,
+      args.information
+    );
+  }
+});
+
 const createCycle = makeQueryOrMutationField<
   {
     accessToken: database.AccessToken;
@@ -772,6 +800,7 @@ export const schema = (origin: data.Origin): g.GraphQLSchema =>
         joinTeamAndSetPlayerRole,
         updatePersonalGoal,
         updateTeamGoal,
+        updateTeamInformation,
         createCycle,
         updateCycle
       }
