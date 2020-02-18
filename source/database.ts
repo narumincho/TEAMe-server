@@ -573,7 +573,7 @@ export const updateTeamInformation = async (
     .update({
       information: information
     });
-  return { id: teamId, goal: information };
+  return { id: teamId, information: information };
 };
 
 export const getCycleData = async (
