@@ -10,11 +10,11 @@ import * as html from "@narumincho/html";
 
 const pathToDescriptionAndImageUrl = async (
   path: string
-): Promise<{ title: string; description: string; imageUrl: string }> => {
+): Promise<{ title: string; description: string; imageUrl: URL }> => {
   return {
     title: "TEAMe",
     description: "デジタル練習ノート",
-    imageUrl: data.appOrigin + "/assets/icon.png"
+    imageUrl: new URL(data.appOrigin + "/assets/icon.png")
   };
 };
 
@@ -45,7 +45,8 @@ export const indexHtml = functions
         iconPath: ["assets", "icon.png"],
         coverImageUrl: descriptionAndImageUrl.imageUrl,
         twitterCard: html.TwitterCard.SummaryCard,
-        scriptUrlList: [data.appOrigin + "/main.js"],
+        scriptUrlList: [new URL(data.appOrigin + "/main.js")],
+        styleUrlList: [],
         description: descriptionAndImageUrl.description,
         themeColor: "#a7d86e",
         language: html.Language.Japanese,
@@ -62,7 +63,7 @@ export const indexHtml = functions
           margin: 0;
           height: 100%;
       }`,
-        body: [html.div(null, "TEAMeを読み込み中……")]
+        body: [html.div({}, "TEAMeを読み込み中……")]
       })
     );
   });
