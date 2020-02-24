@@ -280,7 +280,7 @@ const createAccessToken = (): AccessToken => {
 const accessTokenToTypedArray = (accessToken: AccessToken): Uint8Array => {
   const binary = new Uint8Array(24);
   for (let i = 0; i < 24; i++) {
-    binary[i] = Number.parseInt(accessToken.slice(i, i + 2), 16);
+    binary[i] = Number.parseInt(accessToken.slice(i * 2, i * 2 + 2), 16);
   }
   return binary;
 };
