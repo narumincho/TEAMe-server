@@ -51,8 +51,7 @@ export const indexHtml = functions
         themeColor: "#a7d86e",
         language: html.Language.Japanese,
         manifestPath: ["assets", "manifest.json"],
-        origin: data.appOrigin,
-        path: request.url.substring(1).split("/"),
+        url: new URL(data.appOrigin + request.url),
         javaScriptMustBeAvailable: true,
         style: `html {
           height: 100%;
