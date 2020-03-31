@@ -326,7 +326,7 @@ const userDataGraphQLType: g.GraphQLObjectType<
       team: makeObjectField({
         args: {},
         description: "所属しているチーム",
-        type: g.GraphQLNonNull(teamGraphQLType),
+        type: teamGraphQLType,
         resolve: async source => {
           if (source.team === undefined) {
             return (await setUserData(source)).team;
